@@ -42,6 +42,7 @@ function setupTabs() {
 
   document.getElementById("btn-goto-screening")?.addEventListener("click", () => switchTab("tab-screening"));
   document.getElementById("btn-goto-meta")?.addEventListener("click", () => switchTab("tab-meta"));
+  document.getElementById("btn-goto-synthesis")?.addEventListener("click", () => switchTab("tab-synthesis"));
 }
 
 function switchTab(tabId) {
@@ -78,17 +79,20 @@ function switchTab(tabId) {
 // --- Search Engine (Browser Direct OpenAlex & Open-Access API) ---
 function setupSearch() {
   const btnSearch = document.getElementById("btn-search");
+  const btnOneClick = document.getElementById("btn-one-click-auto");
   const inputKeyword = document.getElementById("search-keyword");
 
-  btnSearch.addEventListener("click", () => executeSearch());
-  inputKeyword.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") executeSearch();
+  btnSearch?.addEventListener("click", () => executeSearch(false));
+  btnOneClick?.addEventListener("click", () => executeSearch(true));
+
+  inputKeyword?.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") executeSearch(false);
   });
 
   document.querySelectorAll(".quick-tag").forEach(tag => {
     tag.addEventListener("click", () => {
       inputKeyword.value = tag.getAttribute("data-kw");
-      executeSearch();
+      executeSearch(false);
     });
   });
 }
@@ -174,7 +178,6 @@ function extractMetrics(text, fallbackIndex = 1) {
     }
   }
 
-  // Realistic defaults
   const defEs = Math.round((1.25 + fallbackIndex * 0.08) * 100) / 100;
   return {
     effectType: "OR",
@@ -185,7 +188,7 @@ function extractMetrics(text, fallbackIndex = 1) {
   };
 }
 
-async function executeSearch() {
+async function executeSearch(isOneClickAuto = false) {
   const kw = document.getElementById("search-keyword").value.trim();
   if (!kw) {
     alert("検索キーワードを入力してください。");
@@ -193,10 +196,10 @@ async function executeSearch() {
   }
   state.keyword = kw;
 
-  const yearStart = parseInt(document.getElementById("opt-year-start").value) || null;
-  const yearEnd = parseInt(document.getElementById("opt-year-end").value) || null;
-  const maxResults = parseInt(document.getElementById("opt-max-results").value) || 20;
-  const sortBy = document.getElementById("opt-sort-by").value || "relevance";
+  const yearStart = parseInt(document.getElementById("opt-year-start")?.value) || null;
+  const yearEnd = parseInt(document.getElementById("opt-year-end")?.value) || null;
+  const maxResults = parseInt(document.getElementById("opt-max-results")?.value) || 20;
+  const sortBy = document.getElementById("opt-sort-by")?.value || "relevance";
 
   const loadingEl = document.getElementById("search-loading");
   const summaryEl = document.getElementById("ident-summary-card");
@@ -302,6 +305,13 @@ async function executeSearch() {
     updatePrismaCounts();
     renderScreeningList();
     renderMetaDataMatrix();
+
+    // If One-Click Auto Analysis was selected, immediately compute meta-analysis and generate report!
+    if (isOneClickAuto && parsedPapers.length > 0) {
+      runMetaAnalysis();
+      await generateSynthesis();
+      switchTab("tab-synthesis");
+    }
   } catch (err) {
     alert("論文検索エラー: " + err.message);
   } finally {
@@ -490,17 +500,22 @@ function renderScreeningList() {
 // --- Quantitative Meta-Analysis (Pure JS Engine) ---
 function setupMetaAnalysis() {
   document.getElementById("btn-run-meta")?.addEventListener("click", () => runMetaAnalysis());
-  document.getElementById("btn-download-plot")?.addEventListener("click", () => {
-    const plotEl = document.getElementById("plotly-forest-plot");
-    if (plotEl) {
-      Plotly.downloadImage(plotEl, {
-        format: "png",
-        width: 1000,
-        height: Math.max(500, state.papers.filter(p => p.is_included_synthesis).length * 50 + 200),
-        filename: `forest_plot_${state.keyword.replace(/\s+/g, '_')}`
-      });
-    }
-  });
+  document.getElementById("btn-download-plot")?.addEventListener("click", () => downloadPlotImage());
+  document.getElementById("btn-download-plot-from-report")?.addEventListener("click", () => downloadPlotImage());
+}
+
+function downloadPlotImage() {
+  const plotEl = document.getElementById("plotly-forest-plot");
+  if (plotEl && plotEl.data) {
+    Plotly.downloadImage(plotEl, {
+      format: "png",
+      width: 1000,
+      height: Math.max(500, state.papers.filter(p => p.is_included_synthesis).length * 50 + 200),
+      filename: `forest_plot_${(state.keyword || 'meta_analysis').replace(/\s+/g, '_')}`
+    });
+  } else {
+    alert("フォレストプロットがまだ生成されていません。メタ分析を実行してください。");
+  }
 }
 
 function renderMetaDataMatrix() {
@@ -605,7 +620,7 @@ function runMetaAnalysis() {
     return;
   }
 
-  const metric = document.getElementById("meta-effect-metric").value;
+  const metric = document.getElementById("meta-effect-metric")?.value || "OR";
   const isRatio = ["OR", "RR", "HR"].includes(metric.toUpperCase());
 
   const validStudies = [];
@@ -733,8 +748,8 @@ function runMetaAnalysis() {
 }
 
 function renderMetaSummary(res) {
-  document.getElementById("meta-results-summary").classList.remove("hidden");
-  document.getElementById("forest-plot-card").classList.remove("hidden");
+  document.getElementById("meta-results-summary")?.classList.remove("hidden");
+  document.getElementById("forest-plot-card")?.classList.remove("hidden");
 
   // Random Effects
   document.getElementById("res-rand-effect").innerText = `${res.metric} = ${res.random.pooled.toFixed(2)}`;
@@ -911,18 +926,106 @@ function renderForestPlot(res) {
   });
 }
 
-// --- PRISMA 2020 Qualitative Evidence Synthesis ---
+// --- PRISMA 2020 Qualitative Evidence Synthesis & Full Downloads ---
 function setupSynthesis() {
   document.getElementById("btn-generate-synthesis")?.addEventListener("click", () => generateSynthesis());
-  document.getElementById("btn-copy-synthesis")?.addEventListener("click", () => {
-    if (!state.currentReportMarkdown) {
-      alert("コピーするレポートがありません。");
-      return;
-    }
-    navigator.clipboard.writeText(state.currentReportMarkdown).then(() => {
-      alert("PRISMAレポートのMarkdownをクリップボードにコピーしました。");
-    });
+  document.getElementById("btn-copy-synthesis")?.addEventListener("click", () => copyReportMarkdown());
+  
+  // Direct Download Buttons for Report
+  document.getElementById("btn-download-report-md")?.addEventListener("click", () => downloadReportMarkdown());
+  document.getElementById("btn-download-report-html")?.addEventListener("click", () => downloadReportHtml());
+  document.getElementById("btn-print-report-pdf")?.addEventListener("click", () => printReportPdf());
+}
+
+function copyReportMarkdown() {
+  if (!state.currentReportMarkdown) {
+    alert("コピーするレポートがありません。先にレポートを生成してください。");
+    return;
+  }
+  navigator.clipboard.writeText(state.currentReportMarkdown).then(() => {
+    alert("PRISMAレポートのMarkdownをクリップボードにコピーしました！");
   });
+}
+
+function downloadReportMarkdown() {
+  if (!state.currentReportMarkdown) {
+    alert("ダウンロードするレポートがありません。先に「PRISMAレポートを生成」をクリックしてください。");
+    return;
+  }
+  const filename = `PRISMA_Meta_Analysis_Report_${(state.keyword || 'report').replace(/\s+/g, '_')}.md`;
+  const blob = new Blob([state.currentReportMarkdown], { type: "text/markdown;charset=utf-8;" });
+  downloadBlob(blob, filename);
+}
+
+function downloadReportHtml() {
+  if (!state.currentReportMarkdown) {
+    alert("ダウンロードするレポートがありません。先に「PRISMAレポートを生成」をクリックしてください。");
+    return;
+  }
+  const renderedHtml = marked.parse(state.currentReportMarkdown);
+  const fullHtml = `<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>PRISMA 2020 Meta-Analysis Report: ${escapeHtml(state.keyword)}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.6; color: #1e293b; max-width: 900px; margin: 40px auto; padding: 0 20px; }
+    h1 { font-size: 1.8rem; border-bottom: 2px solid #2563eb; padding-bottom: 10px; color: #0f172a; }
+    h2 { font-size: 1.4rem; border-bottom: 1px solid #cbd5e1; padding-bottom: 6px; margin-top: 30px; color: #1e3a8a; }
+    h3 { font-size: 1.15rem; color: #334155; margin-top: 20px; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    th, td { border: 1px solid #cbd5e1; padding: 8px 12px; text-align: left; font-size: 0.9rem; }
+    th { background-color: #f1f5f9; font-weight: 600; }
+    ul { padding-left: 25px; }
+    code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+    .footer { margin-top: 50px; font-size: 0.8rem; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 15px; }
+  </style>
+</head>
+<body>
+  ${renderedHtml}
+  <div class="footer">Generated by OpenJournalMetaAnalyzer (PRISMA 2020 Compliant Platform)</div>
+</body>
+</html>`;
+
+  const filename = `PRISMA_Meta_Analysis_Report_${(state.keyword || 'report').replace(/\s+/g, '_')}.html`;
+  const blob = new Blob([fullHtml], { type: "text/html;charset=utf-8;" });
+  downloadBlob(blob, filename);
+}
+
+function printReportPdf() {
+  if (!state.currentReportMarkdown) {
+    alert("印刷・PDF化するレポートがありません。先にレポートを生成してください。");
+    return;
+  }
+  const renderedHtml = marked.parse(state.currentReportMarkdown);
+  const printWindow = window.open("", "_blank");
+  printWindow.document.write(`<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>PRISMA 2020 Meta-Analysis Report - ${escapeHtml(state.keyword)}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.6; color: #1e293b; padding: 20px; }
+    h1 { font-size: 1.6rem; border-bottom: 2px solid #2563eb; padding-bottom: 8px; }
+    h2 { font-size: 1.3rem; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-top: 24px; color: #1e3a8a; }
+    h3 { font-size: 1.1rem; color: #334155; }
+    table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+    th, td { border: 1px solid #cbd5e1; padding: 6px 10px; text-align: left; font-size: 0.85rem; }
+    th { background-color: #f8fafc; }
+    @media print {
+      body { margin: 0; padding: 10mm; }
+    }
+  </style>
+</head>
+<body>
+  ${renderedHtml}
+</body>
+</html>`);
+  printWindow.document.close();
+  printWindow.focus();
+  setTimeout(() => {
+    printWindow.print();
+  }, 500);
 }
 
 async function generateSynthesis() {
@@ -934,9 +1037,10 @@ async function generateSynthesis() {
 
   const loadingEl = document.getElementById("synthesis-loading");
   const reportContainer = document.getElementById("synthesis-report-container");
+  const downloadBar = document.getElementById("report-download-actions");
 
-  loadingEl.classList.remove("hidden");
-  reportContainer.innerHTML = "";
+  loadingEl?.classList.remove("hidden");
+  if (reportContainer) reportContainer.innerHTML = "";
 
   try {
     let reportMd = "";
@@ -953,11 +1057,12 @@ async function generateSynthesis() {
     }
 
     state.currentReportMarkdown = reportMd;
-    reportContainer.innerHTML = marked.parse(reportMd);
+    if (reportContainer) reportContainer.innerHTML = marked.parse(reportMd);
+    downloadBar?.classList.remove("hidden");
   } catch (err) {
     alert("エラー: " + err.message);
   } finally {
-    loadingEl.classList.add("hidden");
+    loadingEl?.classList.add("hidden");
   }
 }
 
@@ -1060,53 +1165,63 @@ function generateLocalPrismaReport(keyword, papers, meta) {
 
 // --- Exports ---
 function setupExports() {
-  document.getElementById("btn-export-csv")?.addEventListener("click", () => {
-    const included = state.papers.filter(p => p.is_included_synthesis);
-    if (included.length === 0) return alert("エクスポート対象の研究がありません。");
+  document.getElementById("btn-export-csv")?.addEventListener("click", () => downloadCsv());
+  document.getElementById("btn-export-csv-from-report")?.addEventListener("click", () => downloadCsv());
 
-    let csvContent = "ID,Title,Authors,Year,Journal,DOI,OpenAccessURL,PDF_URL,Citations,EffectType,EffectSize,CI_Lower,CI_Upper,SampleSize\n";
-    included.forEach(p => {
-      const row = [
-        `"${p.id}"`,
-        `"${(p.title || '').replace(/"/g, '""')}"`,
-        `"${p.authors.join('; ').replace(/"/g, '""')}"`,
-        p.year || '',
-        `"${(p.journal || '').replace(/"/g, '""')}"`,
-        `"${p.doi || ''}"`,
-        `"${p.oa_url || ''}"`,
-        `"${p.pdf_url || ''}"`,
-        p.citations,
-        p.effect_type,
-        p.effect_size,
-        p.ci_lower,
-        p.ci_upper,
-        p.sample_size
-      ];
-      csvContent += row.join(",") + "\n";
-    });
+  document.getElementById("btn-export-bibtex")?.addEventListener("click", () => downloadBibtex());
+  document.getElementById("btn-export-bibtex-from-report")?.addEventListener("click", () => downloadBibtex());
 
-    const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
-    downloadBlob(blob, `meta_analysis_papers_${state.keyword || 'export'}.csv`);
+  document.getElementById("btn-export-prisma-txt")?.addEventListener("click", () => downloadPrismaTxt());
+  document.getElementById("btn-export-prisma-txt-from-report")?.addEventListener("click", () => downloadPrismaTxt());
+}
+
+function downloadCsv() {
+  const included = state.papers.filter(p => p.is_included_synthesis);
+  if (included.length === 0) return alert("エクスポート対象の研究がありません。");
+
+  let csvContent = "ID,Title,Authors,Year,Journal,DOI,OpenAccessURL,PDF_URL,Citations,EffectType,EffectSize,CI_Lower,CI_Upper,SampleSize\n";
+  included.forEach(p => {
+    const row = [
+      `"${p.id}"`,
+      `"${(p.title || '').replace(/"/g, '""')}"`,
+      `"${p.authors.join('; ').replace(/"/g, '""')}"`,
+      p.year || '',
+      `"${(p.journal || '').replace(/"/g, '""')}"`,
+      `"${p.doi || ''}"`,
+      `"${p.oa_url || ''}"`,
+      `"${p.pdf_url || ''}"`,
+      p.citations,
+      p.effect_type,
+      p.effect_size,
+      p.ci_lower,
+      p.ci_upper,
+      p.sample_size
+    ];
+    csvContent += row.join(",") + "\n";
   });
 
-  document.getElementById("btn-export-bibtex")?.addEventListener("click", () => {
-    const included = state.papers.filter(p => p.is_included_synthesis);
-    if (included.length === 0) return alert("エクスポート対象の研究がありません。");
+  const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+  downloadBlob(blob, `meta_analysis_papers_${(state.keyword || 'export').replace(/\s+/g, '_')}.csv`);
+}
 
-    const bibEntries = included.map((p, i) => {
-      const citeKey = `paper_${p.year || 2024}_${i+1}`;
-      const authorsBib = p.authors.length > 0 ? p.authors.join(" and ") : "Unknown";
-      const titleClean = p.title.replace(/[{}]/g, "");
-      return `@article{${citeKey},\n  title = {{${titleClean}}},\n  author = {${authorsBib}},\n  journal = {${p.journal || 'Open Access Journal'}},\n  year = {${p.year || '2024'}},\n  doi = {${p.doi || ''}},\n  url = {${p.oa_url || ''}}\n}`;
-    });
+function downloadBibtex() {
+  const included = state.papers.filter(p => p.is_included_synthesis);
+  if (included.length === 0) return alert("エクスポート対象の研究がありません。");
 
-    const blob = new Blob([bibEntries.join("\n\n")], { type: "application/x-bibtex;charset=utf-8;" });
-    downloadBlob(blob, `open_journal_references_${state.keyword || 'export'}.bib`);
+  const bibEntries = included.map((p, i) => {
+    const citeKey = `paper_${p.year || 2024}_${i+1}`;
+    const authorsBib = p.authors.length > 0 ? p.authors.join(" and ") : "Unknown";
+    const titleClean = p.title.replace(/[{}]/g, "");
+    return `@article{${citeKey},\n  title = {{${titleClean}}},\n  author = {${authorsBib}},\n  journal = {${p.journal || 'Open Access Journal'}},\n  year = {${p.year || '2024'}},\n  doi = {${p.doi || ''}},\n  url = {${p.oa_url || ''}}\n}`;
   });
 
-  document.getElementById("btn-export-prisma-txt")?.addEventListener("click", () => {
-    const c = state.prismaCounts;
-    const txt = `PRISMA 2020 Flow Diagram Summary for Keyword: "${state.keyword}"
+  const blob = new Blob([bibEntries.join("\n\n")], { type: "application/x-bibtex;charset=utf-8;" });
+  downloadBlob(blob, `open_journal_references_${(state.keyword || 'export').replace(/\s+/g, '_')}.bib`);
+}
+
+function downloadPrismaTxt() {
+  const c = state.prismaCounts;
+  const txt = `PRISMA 2020 Flow Diagram Summary for Keyword: "${state.keyword}"
 ============================================================
 1. Identification:
    - Records identified from Open-Access Databases (OpenAlex & Europe PMC): ${c.records_identified}
@@ -1127,9 +1242,8 @@ function setupExports() {
 Exclusion Reasons breakdown:
 ${Object.entries(c.exclusion_reasons || {}).map(([r, n]) => ` - ${r}: ${n} studies`).join("\n") || " None recorded"}
 `;
-    const blob = new Blob([txt], { type: "text/plain;charset=utf-8;" });
-    downloadBlob(blob, "prisma_2020_flow_summary.txt");
-  });
+  const blob = new Blob([txt], { type: "text/plain;charset=utf-8;" });
+  downloadBlob(blob, "prisma_2020_flow_summary.txt");
 }
 
 function downloadBlob(blob, filename) {
@@ -1150,7 +1264,7 @@ function setupSettingsModal() {
   const btnSave = document.getElementById("btn-save-settings");
   const inputKey = document.getElementById("input-gemini-key");
 
-  if (state.geminiApiKey) {
+  if (state.geminiApiKey && inputKey) {
     inputKey.value = state.geminiApiKey;
   }
 
