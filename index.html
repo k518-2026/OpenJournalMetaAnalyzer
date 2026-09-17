@@ -1,0 +1,505 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenJournalMetaAnalyzer - PRISMA 2020 オープンジャーナル検索＆メタ分析</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Plotly.js CDN -->
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+  <!-- Marked.js for Markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  
+  <link rel="stylesheet" href="docs/css/style.css">
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-800 flex flex-col">
+
+  <!-- Navigation / Header -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-md">
+          <i data-lucide="git-merge" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <h1 class="text-xl font-bold text-slate-900 tracking-tight">OpenJournalMetaAnalyzer</h1>
+            <span class="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full font-semibold">PRISMA 2020</span>
+          </div>
+          <p class="text-xs text-slate-500">海外オープンジャーナル論文検索 & 統計的/定性メタ分析プラットフォーム</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-3">
+        <button id="btn-open-settings" class="inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg border border-slate-300 text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 transition shadow-sm">
+          <i data-lucide="key" class="w-4 h-4 text-slate-500"></i>
+          <span>Gemini API設定</span>
+        </button>
+        <a href="https://github.com/k518-2026/OpenJournalMetaAnalyzer" target="_blank" class="inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 transition shadow-sm">
+          <i data-lucide="github" class="w-4 h-4"></i>
+          <span>GitHub</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Stepper Navigation Bar -->
+    <div class="bg-slate-100 border-t border-slate-200">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex overflow-x-auto">
+        <button class="nav-tab active py-3 px-4 text-sm flex items-center space-x-2 whitespace-nowrap" data-tab="tab-search">
+          <i data-lucide="search" class="w-4 h-4"></i>
+          <span>1. 論文検索 (Identification)</span>
+          <span id="badge-ident-count" class="hidden ml-1 px-1.5 py-0.2 bg-blue-100 text-blue-700 text-xs rounded-full">0</span>
+        </button>
+        <button class="nav-tab py-3 px-4 text-sm flex items-center space-x-2 whitespace-nowrap text-slate-600 hover:text-slate-900" data-tab="tab-screening">
+          <i data-lucide="filter" class="w-4 h-4"></i>
+          <span>2. PRISMA スクリーニング & フロー図</span>
+          <span id="badge-screen-count" class="hidden ml-1 px-1.5 py-0.2 bg-emerald-100 text-emerald-700 text-xs rounded-full">0</span>
+        </button>
+        <button class="nav-tab py-3 px-4 text-sm flex items-center space-x-2 whitespace-nowrap text-slate-600 hover:text-slate-900" data-tab="tab-meta">
+          <i data-lucide="bar-chart-2" class="w-4 h-4"></i>
+          <span>3. 統計的メタ分析 & フォレストプロット</span>
+        </button>
+        <button class="nav-tab py-3 px-4 text-sm flex items-center space-x-2 whitespace-nowrap text-slate-600 hover:text-slate-900" data-tab="tab-synthesis">
+          <i data-lucide="file-text" class="w-4 h-4"></i>
+          <span>4. PRISMA 定性エビデンス統合レポート</span>
+        </button>
+        <button class="nav-tab py-3 px-4 text-sm flex items-center space-x-2 whitespace-nowrap text-slate-600 hover:text-slate-900" data-tab="tab-export">
+          <i data-lucide="download" class="w-4 h-4"></i>
+          <span>5. データ・文献エクスポート</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full">
+
+    <!-- TAB 1: SEARCH & IDENTIFICATION -->
+    <section id="tab-search" class="tab-pane space-y-6">
+      <!-- Search Input Card -->
+      <div class="glass-card p-6 bg-white border border-slate-200">
+        <h2 class="text-lg font-bold text-slate-900 mb-2 flex items-center space-x-2">
+          <i data-lucide="search" class="w-5 h-5 text-blue-600"></i>
+          <span>海外オープンジャーナル論文の一括検索 (PRISMA: Identification)</span>
+        </h2>
+        <p class="text-sm text-slate-600 mb-4">
+          OpenAlex（2.5億件の学術文献）および Europe PMC（生命科学・医学オープンアクセス）から、完全オープンアクセス（OA）の論文のみを自動検索します。
+        </p>
+
+        <div class="space-y-4">
+          <div class="flex flex-col sm:flex-row gap-3">
+            <div class="relative flex-1">
+              <i data-lucide="search" class="absolute left-3.5 top-3.5 w-5 h-5 text-slate-400"></i>
+              <input type="text" id="search-keyword" placeholder="例: mRNA vaccine efficacy, CRISPR cancer therapy, Type 2 diabetes metformin" 
+                class="w-full pl-11 pr-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-slate-900 shadow-sm" />
+            </div>
+            <button id="btn-search" class="inline-flex items-center justify-center space-x-2 px-6 py-2.5 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition shadow-md whitespace-nowrap">
+              <i data-lucide="search" class="w-4 h-4"></i>
+              <span>論文を検索</span>
+            </button>
+          </div>
+
+          <!-- Quick Keyword Badges -->
+          <div class="flex items-center space-x-2 text-xs flex-wrap gap-y-1">
+            <span class="text-slate-500 font-medium">クイック入力例:</span>
+            <button class="quick-tag px-2.5 py-1 bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 rounded-md transition" data-kw="mRNA vaccine efficacy">mRNA vaccine efficacy</button>
+            <button class="quick-tag px-2.5 py-1 bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 rounded-md transition" data-kw="CRISPR gene editing therapy">CRISPR gene editing therapy</button>
+            <button class="quick-tag px-2.5 py-1 bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 rounded-md transition" data-kw="Metformin cognitive decline dementia">Metformin cognitive decline</button>
+            <button class="quick-tag px-2.5 py-1 bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 rounded-md transition" data-kw="Remote work productivity mental health">Remote work productivity</button>
+          </div>
+
+          <!-- Search Options Accordion -->
+          <details class="text-xs text-slate-600 border-t border-slate-100 pt-3">
+            <summary class="cursor-pointer font-medium text-blue-600 hover:text-blue-800 flex items-center space-x-1">
+              <span>詳細検索オプション (出版年・件数・ソート・データソース)</span>
+            </summary>
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mt-3 bg-slate-50 p-4 rounded-lg border border-slate-200">
+              <div>
+                <label class="block font-medium mb-1">出版年（開始）:</label>
+                <input type="number" id="opt-year-start" value="2020" placeholder="2020" class="w-full p-2 border border-slate-300 rounded bg-white" />
+              </div>
+              <div>
+                <label class="block font-medium mb-1">出版年（終了）:</label>
+                <input type="number" id="opt-year-end" value="2026" placeholder="2026" class="w-full p-2 border border-slate-300 rounded bg-white" />
+              </div>
+              <div>
+                <label class="block font-medium mb-1">取得件数（最大）:</label>
+                <select id="opt-max-results" class="w-full p-2 border border-slate-300 rounded bg-white">
+                  <option value="15" selected>15件</option>
+                  <option value="25">25件</option>
+                  <option value="40">40件</option>
+                </select>
+              </div>
+              <div>
+                <label class="block font-medium mb-1">並び順 (Sort):</label>
+                <select id="opt-sort-by" class="w-full p-2 border border-slate-300 rounded bg-white">
+                  <option value="relevance" selected>関連度順</option>
+                  <option value="citations">被引用数順 (Cited by)</option>
+                  <option value="year">最新出版年順</option>
+                </select>
+              </div>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div id="search-loading" class="hidden glass-card p-8 text-center space-y-4">
+        <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-blue-600 border-t-transparent"></div>
+        <p class="text-sm font-medium text-slate-700">海外オープンジャーナルリポジトリを並行検索し、完全オープンアクセス論文を同定中...</p>
+        <p class="text-xs text-slate-500">OpenAlex & Europe PMC クエリ実行中 / 重複排除処理中</p>
+      </div>
+
+      <!-- Identification Summary Card (PRISMA Step 1) -->
+      <div id="ident-summary-card" class="hidden glass-card p-5 bg-blue-50/50 border border-blue-200">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider text-blue-700">PRISMA 2020: Identification 成果</span>
+            <div class="flex items-center space-x-4 mt-1 text-sm">
+              <div>検索ヒット総数: <b id="stat-total-ident" class="text-blue-900 font-bold">0</b>件</div>
+              <div>重複除外: <b id="stat-dup-removed" class="text-amber-700 font-bold">0</b>件</div>
+              <div>スクリーニング対象: <b id="stat-unique-screened" class="text-emerald-700 font-bold">0</b>件</div>
+            </div>
+          </div>
+          <button id="btn-goto-screening" class="inline-flex items-center space-x-1.5 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 transition shadow">
+            <span>2. スクリーニングへ進む</span>
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Results List Preview -->
+      <div id="search-results-container" class="space-y-4">
+        <!-- Rendered dynamically -->
+      </div>
+    </section>
+
+
+    <!-- TAB 2: PRISMA SCREENING & FLOW DIAGRAM -->
+    <section id="tab-screening" class="tab-pane hidden space-y-6">
+      <!-- PRISMA 2020 Flow Diagram Interactive View -->
+      <div class="glass-card p-6 bg-white border border-slate-200">
+        <div class="flex items-center justify-between mb-4 border-b border-slate-200 pb-3">
+          <div class="flex items-center space-x-2">
+            <i data-lucide="workflow" class="w-5 h-5 text-blue-600"></i>
+            <h2 class="text-lg font-bold text-slate-900">PRISMA 2020 Flow Diagram (論文選定フロー図)</h2>
+          </div>
+          <span class="text-xs text-slate-500 font-medium">スクリーニング操作に応じて数値がリアルタイムに連動します</span>
+        </div>
+
+        <!-- PRISMA 4-Phase Grid Diagram -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
+          <!-- Phase 1: Identification -->
+          <div class="flex flex-col items-center">
+            <div class="w-full prisma-node border-blue-400 bg-blue-50/30">
+              <div class="prisma-node-header">1. Identification (同定)</div>
+              <div class="prisma-node-count text-blue-700" id="flow-ident">0</div>
+              <div class="text-xs text-slate-600 mt-1">データベース検索検出数</div>
+            </div>
+            <div class="prisma-connector-down my-2"></div>
+            <div class="w-full prisma-node border-amber-300 bg-amber-50/30 text-xs">
+              <div class="text-slate-500 font-semibold">重複除外レコード</div>
+              <div class="font-bold text-amber-800 text-sm mt-0.5" id="flow-dup">0</div>
+            </div>
+          </div>
+
+          <!-- Phase 2: Screening -->
+          <div class="flex flex-col items-center">
+            <div class="w-full prisma-node border-indigo-400 bg-indigo-50/30">
+              <div class="prisma-node-header">2. Screening (選定)</div>
+              <div class="prisma-node-count text-indigo-700" id="flow-screened">0</div>
+              <div class="text-xs text-slate-600 mt-1">抄録スクリーニング実施</div>
+            </div>
+            <div class="prisma-connector-down my-2"></div>
+            <div class="w-full prisma-node border-rose-300 bg-rose-50/30 text-xs">
+              <div class="text-slate-500 font-semibold">スクリーニング除外</div>
+              <div class="font-bold text-rose-800 text-sm mt-0.5" id="flow-excluded-screen">0</div>
+            </div>
+          </div>
+
+          <!-- Phase 3: Eligibility -->
+          <div class="flex flex-col items-center">
+            <div class="w-full prisma-node border-purple-400 bg-purple-50/30">
+              <div class="prisma-node-header">3. Eligibility (適格性)</div>
+              <div class="prisma-node-count text-purple-700" id="flow-eligibility">0</div>
+              <div class="text-xs text-slate-600 mt-1">適格性精読評価</div>
+            </div>
+            <div class="prisma-connector-down my-2"></div>
+            <div class="w-full prisma-node border-rose-300 bg-rose-50/30 text-xs">
+              <div class="text-slate-500 font-semibold">適格性判定による除外</div>
+              <div class="font-bold text-rose-800 text-sm mt-0.5" id="flow-excluded-elig">0</div>
+            </div>
+          </div>
+
+          <!-- Phase 4: Included -->
+          <div class="flex flex-col items-center">
+            <div class="w-full prisma-node border-emerald-500 bg-emerald-50/50">
+              <div class="prisma-node-header">4. Included (採択)</div>
+              <div class="prisma-node-count text-emerald-700" id="flow-included">0</div>
+              <div class="text-xs text-slate-600 mt-1">定性統合に含まれた研究</div>
+            </div>
+            <div class="prisma-connector-down my-2"></div>
+            <div class="w-full prisma-node border-emerald-600 bg-emerald-100/50 text-xs">
+              <div class="text-emerald-900 font-semibold">定量メタ分析採択研究</div>
+              <div class="font-bold text-emerald-800 text-sm mt-0.5" id="flow-included-quant">0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Screening Controls & List -->
+      <div class="glass-card p-6 bg-white border border-slate-200">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+          <div>
+            <h3 class="text-base font-bold text-slate-900">論文スクリーニング・除外理由の設定</h3>
+            <p class="text-xs text-slate-500">メタ分析に採用する研究をトグルで選択し、除外する場合は理由を指定してください。</p>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button id="btn-select-all" class="px-3 py-1 text-xs border border-slate-300 rounded hover:bg-slate-50">全て採用</button>
+            <button id="btn-goto-meta" class="inline-flex items-center space-x-1.5 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition shadow">
+              <span>3. メタ分析・フォレストプロットへ</span>
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <div id="screening-papers-list" class="space-y-4">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </section>
+
+
+    <!-- TAB 3: QUANTITATIVE META-ANALYSIS & FOREST PLOT -->
+    <section id="tab-meta" class="tab-pane hidden space-y-6">
+      <!-- Meta-Analysis Controls -->
+      <div class="glass-card p-6 bg-white border border-slate-200">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 border-b border-slate-200 pb-4">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900 flex items-center space-x-2">
+              <i data-lucide="bar-chart-2" class="w-5 h-5 text-blue-600"></i>
+              <span>統計的メタ分析＆フォレストプロット生成</span>
+            </h2>
+            <p class="text-xs text-slate-500">各研究の効果量と95%信頼区間を統合し、固定効果・変量効果モデルおよび異質性 ($I^2$) を検証します。</p>
+          </div>
+          <div class="flex items-center space-x-3">
+            <div class="flex items-center space-x-2">
+              <label class="text-xs font-semibold text-slate-700">効果量指標:</label>
+              <select id="meta-effect-metric" class="text-sm p-1.5 border border-slate-300 rounded bg-white font-medium">
+                <option value="OR" selected>オッズ比 (OR)</option>
+                <option value="RR">相対リスク (RR)</option>
+                <option value="HR">ハザード比 (HR)</option>
+                <option value="SMD">標準化平均差 (SMD)</option>
+                <option value="MD">平均差 (MD)</option>
+              </select>
+            </div>
+            <button id="btn-run-meta" class="inline-flex items-center space-x-1.5 px-5 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition shadow">
+              <i data-lucide="play" class="w-4 h-4"></i>
+              <span>メタ分析を実行</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Studies Data Matrix (Editable Table) -->
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse border border-slate-200">
+            <thead class="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
+              <tr>
+                <th class="p-2.5 border border-slate-200">採用</th>
+                <th class="p-2.5 border border-slate-200">研究（筆頭著者・出版年）</th>
+                <th class="p-2.5 border border-slate-200">掲載ジャーナル</th>
+                <th class="p-2.5 border border-slate-200">効果量 (Point Estimate)</th>
+                <th class="p-2.5 border border-slate-200">95% CI 下限 (Lower)</th>
+                <th class="p-2.5 border border-slate-200">95% CI 上限 (Upper)</th>
+                <th class="p-2.5 border border-slate-200">サンプルサイズ (N)</th>
+              </tr>
+            </thead>
+            <tbody id="meta-data-matrix-body" class="divide-y divide-slate-200">
+              <!-- Dynamically rendered editable rows -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Statistical Pooled Results Cards -->
+      <div id="meta-results-summary" class="hidden grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Random-Effects Card -->
+        <div class="glass-card p-5 border-l-4 border-l-red-500 bg-white">
+          <div class="text-xs font-bold text-red-700 uppercase tracking-wide">変量効果モデル (Random Effects)</div>
+          <div class="text-xs text-slate-500 mb-2">DerSimonian-Laird 法</div>
+          <div class="text-2xl font-black text-slate-900" id="res-rand-effect">-</div>
+          <div class="text-xs text-slate-600 mt-1 font-medium">95% CI: <span id="res-rand-ci">-</span></div>
+          <div class="text-xs text-slate-500 mt-1">Z = <span id="res-rand-z">-</span> | p値 = <span id="res-rand-p">-</span></div>
+        </div>
+
+        <!-- Fixed-Effect Card -->
+        <div class="glass-card p-5 border-l-4 border-l-emerald-500 bg-white">
+          <div class="text-xs font-bold text-emerald-700 uppercase tracking-wide">固定効果モデル (Fixed Effect)</div>
+          <div class="text-xs text-slate-500 mb-2">Inverse Variance 法</div>
+          <div class="text-2xl font-black text-slate-900" id="res-fix-effect">-</div>
+          <div class="text-xs text-slate-600 mt-1 font-medium">95% CI: <span id="res-fix-ci">-</span></div>
+          <div class="text-xs text-slate-500 mt-1">Z = <span id="res-fix-z">-</span> | p値 = <span id="res-fix-p">-</span></div>
+        </div>
+
+        <!-- Heterogeneity Card -->
+        <div class="glass-card p-5 border-l-4 border-l-blue-500 bg-white">
+          <div class="text-xs font-bold text-blue-700 uppercase tracking-wide">異質性検定 (Heterogeneity)</div>
+          <div class="text-xs text-slate-500 mb-2">Cochran's Q & I² 統計量</div>
+          <div class="text-2xl font-black text-slate-900" id="res-i2">I² = -%</div>
+          <div class="text-xs text-slate-600 mt-1">Q = <span id="res-q">-</span> (p = <span id="res-qp">-</span>)</div>
+          <div class="text-xs font-semibold text-blue-800 mt-1" id="res-i2-interp">-</div>
+        </div>
+      </div>
+
+      <!-- Forest Plot Chart Container -->
+      <div id="forest-plot-card" class="hidden glass-card p-6 bg-white border border-slate-200 space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+          <div class="flex items-center space-x-2">
+            <i data-lucide="activity" class="w-5 h-5 text-blue-600"></i>
+            <h3 class="text-base font-bold text-slate-900">フォレストプロット (Forest Plot)</h3>
+          </div>
+          <button id="btn-download-plot" class="inline-flex items-center space-x-1 px-3 py-1.5 rounded border border-slate-300 text-xs font-medium hover:bg-slate-50 transition">
+            <i data-lucide="image" class="w-4 h-4 text-slate-600"></i>
+            <span>PNG画像で保存</span>
+          </button>
+        </div>
+        
+        <div id="plotly-forest-plot" class="w-full min-h-[420px]"></div>
+      </div>
+    </section>
+
+
+    <!-- TAB 4: QUALITATIVE EVIDENCE SYNTHESIS REPORT -->
+    <section id="tab-synthesis" class="tab-pane hidden space-y-6">
+      <div class="glass-card p-6 bg-white border border-slate-200">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-4 mb-4">
+          <div>
+            <h2 class="text-lg font-bold text-slate-900 flex items-center space-x-2">
+              <i data-lucide="file-text" class="w-5 h-5 text-blue-600"></i>
+              <span>PRISMA 2020 準拠 定性エビデンス統合レポート</span>
+            </h2>
+            <p class="text-xs text-slate-500">PICO形式・研究特性表・合意点・不一致点・バイアスリスク・GRADE格付けを構造化して生成します。</p>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button id="btn-generate-synthesis" class="inline-flex items-center space-x-1.5 px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition shadow">
+              <i data-lucide="sparkles" class="w-4 h-4"></i>
+              <span>PRISMAレポートを生成</span>
+            </button>
+            <button id="btn-copy-synthesis" class="inline-flex items-center space-x-1.5 px-3 py-2 rounded-lg border border-slate-300 text-sm font-medium hover:bg-slate-50 transition">
+              <i data-lucide="copy" class="w-4 h-4 text-slate-600"></i>
+              <span>Markdownコピー</span>
+            </button>
+          </div>
+        </div>
+
+        <div id="synthesis-loading" class="hidden p-8 text-center space-y-3">
+          <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent"></div>
+          <p class="text-sm text-slate-600">採択研究のエビデンスを総合分析し、PRISMA 2020 構造化レポートを編成中...</p>
+        </div>
+
+        <div id="synthesis-report-container" class="prose max-w-none text-slate-800 p-4 bg-slate-50/50 rounded-lg border border-slate-200">
+          <p class="text-sm text-slate-400 italic">「PRISMAレポートを生成」ボタンを押すと、採択されたオープンジャーナル研究群の包括的なメタ分析レポートが出力されます。</p>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- TAB 5: EXPORT & CITATIONS -->
+    <section id="tab-export" class="tab-pane hidden space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- CSV Export -->
+        <div class="glass-card p-6 bg-white border border-slate-200 space-y-3 flex flex-col justify-between">
+          <div>
+            <div class="w-10 h-10 rounded bg-emerald-100 text-emerald-700 flex items-center justify-center mb-3">
+              <i data-lucide="file-spreadsheet" class="w-6 h-6"></i>
+            </div>
+            <h3 class="font-bold text-slate-900">メタ分析データ (CSV)</h3>
+            <p class="text-xs text-slate-500 mt-1">採用論文の効果量、95% CI、サンプルサイズ、DOI、OA URLをExcel互換CSVでダウンロードできます。</p>
+          </div>
+          <button id="btn-export-csv" class="w-full inline-flex items-center justify-center space-x-2 px-4 py-2.5 rounded-lg bg-emerald-600 text-white font-medium text-sm hover:bg-emerald-700 transition shadow">
+            <i data-lucide="download" class="w-4 h-4"></i>
+            <span>CSVをダウンロード</span>
+          </button>
+        </div>
+
+        <!-- BibTeX Export -->
+        <div class="glass-card p-6 bg-white border border-slate-200 space-y-3 flex flex-col justify-between">
+          <div>
+            <div class="w-10 h-10 rounded bg-blue-100 text-blue-700 flex items-center justify-center mb-3">
+              <i data-lucide="quote" class="w-6 h-6"></i>
+            </div>
+            <h3 class="font-bold text-slate-900">学術文献引用 (BibTeX)</h3>
+            <p class="text-xs text-slate-500 mt-1">LaTeXやZotero、Mendeleyなどの文献管理ツールにインポート可能なBibTeX形式でダウンロードします。</p>
+          </div>
+          <button id="btn-export-bibtex" class="w-full inline-flex items-center justify-center space-x-2 px-4 py-2.5 rounded-lg bg-blue-600 text-white font-medium text-sm hover:bg-blue-700 transition shadow">
+            <i data-lucide="download" class="w-4 h-4"></i>
+            <span>BibTeXをダウンロード</span>
+          </button>
+        </div>
+
+        <!-- PRISMA Flow Summary -->
+        <div class="glass-card p-6 bg-white border border-slate-200 space-y-3 flex flex-col justify-between">
+          <div>
+            <div class="w-10 h-10 rounded bg-purple-100 text-purple-700 flex items-center justify-center mb-3">
+              <i data-lucide="share-2" class="w-6 h-6"></i>
+            </div>
+            <h3 class="font-bold text-slate-900">PRISMA 2020 チェックリスト</h3>
+            <p class="text-xs text-slate-500 mt-1">選定フローの各段階における数値と除外理由の内訳サマリーをテキスト形式で保存します。</p>
+          </div>
+          <button id="btn-export-prisma-txt" class="w-full inline-flex items-center justify-center space-x-2 px-4 py-2.5 rounded-lg bg-purple-600 text-white font-medium text-sm hover:bg-purple-700 transition shadow">
+            <i data-lucide="file-text" class="w-4 h-4"></i>
+            <span>PRISMAサマリーを保存</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Settings Modal (Gemini API Key) -->
+  <div id="settings-modal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4 border border-slate-200">
+      <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+        <h3 class="text-base font-bold text-slate-900 flex items-center space-x-2">
+          <i data-lucide="key" class="w-4 h-4 text-blue-600"></i>
+          <span>Gemini API 設定</span>
+        </h3>
+        <button id="btn-close-settings" class="text-slate-400 hover:text-slate-600">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <p class="text-xs text-slate-600 leading-relaxed">
+        Google Gemini API キーを設定すると、採択論文の高度なPRISMA定性エビデンス統合レポート（Gemini 2.5 Flash）が生成されます。<br>
+        <span class="text-slate-500 font-medium">※未設定の場合でも、内蔵の高精度NLPエンジンにより完全オフラインで動作します。</span>
+      </p>
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1">Gemini API Key:</label>
+        <input type="password" id="input-gemini-key" placeholder="AIzaSy..." class="w-full p-2.5 text-sm border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-blue-500" />
+      </div>
+      <div class="flex justify-end space-x-2 pt-2">
+        <button id="btn-save-settings" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition">
+          保存する
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 py-4 mt-auto">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
+      <div>OpenJournalMetaAnalyzer © 2026 | Compliant with PRISMA 2020 Statement</div>
+      <div>Data Sources: OpenAlex API & Europe PMC API (Open-Access Only)</div>
+    </div>
+  </footer>
+
+  <!-- App Script -->
+  <script src="docs/js/app.js"></script>
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>

@@ -1,0 +1,116 @@
+﻿/* Custom styles for OpenJournalMetaAnalyzer */
+:root {
+  --primary-color: #2563eb;
+  --secondary-color: #0d9488;
+  --bg-subtle: #f8fafc;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color: #1e293b;
+  background-color: #f1f5f9;
+}
+
+/* Glassmorphism utility */
+.glass-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
+
+/* PRISMA 2020 Flow Diagram Nodes */
+.prisma-node {
+  background-color: #ffffff;
+  border: 2px solid #94a3b8;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+  transition: all 0.2s ease;
+}
+
+.prisma-node:hover {
+  border-color: #2563eb;
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.12);
+}
+
+.prisma-node-header {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  margin-bottom: 0.25rem;
+}
+
+.prisma-node-count {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.prisma-connector-down {
+  width: 2px;
+  height: 24px;
+  background-color: #cbd5e1;
+  margin: 0 auto;
+  position: relative;
+}
+
+.prisma-connector-down::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: -4px;
+  border-width: 5px 5px 0 5px;
+  border-style: solid;
+  border-color: #cbd5e1 transparent transparent transparent;
+}
+
+/* Badges */
+.badge-oa {
+  background-color: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.badge-source {
+  background-color: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Tab Active styling */
+.nav-tab.active {
+  color: #2563eb;
+  border-bottom: 3px solid #2563eb;
+  font-weight: 600;
+}
+
+/* Report typography */
+.prose h1 { font-size: 1.5rem; font-weight: 700; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #0f172a; }
+.prose h2 { font-size: 1.25rem; font-weight: 700; margin-top: 1.25rem; margin-bottom: 0.5rem; color: #1e293b; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.25rem; }
+.prose h3 { font-size: 1.1rem; font-weight: 600; margin-top: 1rem; margin-bottom: 0.35rem; color: #334155; }
+.prose p { margin-bottom: 0.75rem; line-height: 1.6; }
+.prose ul { list-style-type: disc; margin-left: 1.5rem; margin-bottom: 0.75rem; }
+.prose li { margin-bottom: 0.25rem; }
+.prose table { width: 100%; border-collapse: collapse; margin-top: 0.75rem; margin-bottom: 1rem; }
+.prose th, .prose td { border: 1px solid #cbd5e1; padding: 0.5rem 0.75rem; text-align: left; font-size: 0.875rem; }
+.prose th { background-color: #f8fafc; font-weight: 600; }
