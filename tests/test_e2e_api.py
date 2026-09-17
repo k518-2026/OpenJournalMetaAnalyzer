@@ -1,4 +1,4 @@
-﻿"""End-to-end FastAPI endpoint integration test."""
+"""End-to-end FastAPI endpoint integration test."""
 import pytest
 from starlette.testclient import TestClient
 from app.main import app
@@ -10,6 +10,13 @@ def test_index_page():
     assert res.status_code == 200
     assert "OpenJournalMetaAnalyzer" in res.text
     assert "PRISMA 2020" in res.text
+
+def test_guide_page():
+    res = client.get("/guide.html")
+    assert res.status_code == 200
+    assert "フォレストプロット" in res.text
+    assert "異質性" in res.text
+    assert "ステップ" in res.text
 
 def test_search_and_prisma_endpoints():
     # 1. Search endpoint

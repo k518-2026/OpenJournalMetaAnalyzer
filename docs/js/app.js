@@ -45,6 +45,19 @@ function setupTabs() {
   document.getElementById("btn-goto-screening")?.addEventListener("click", () => switchTab("tab-screening"));
   document.getElementById("btn-goto-meta")?.addEventListener("click", () => switchTab("tab-meta"));
   document.getElementById("btn-goto-synthesis")?.addEventListener("click", () => switchTab("tab-synthesis"));
+  document.querySelectorAll(".btn-jump-to-guide").forEach(btn => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      switchTab("tab-guide");
+      const target = btn.getAttribute("data-target");
+      if (target) {
+        setTimeout(() => {
+          const el = document.getElementById(target) || document.getElementById("guide-" + target.replace("section-", ""));
+          if (el) el.scrollIntoView({ behavior: "smooth" });
+        }, 150);
+      }
+    });
+  });
 }
 
 function switchTab(tabId) {

@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>メタ分析の指標解説＆結果の読み解き方完全ガイド | OpenJournalMetaAnalyzer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', 'Noto Sans JP', sans-serif; }
+    .glass-card { background: white; border: 1px solid #e2e8f0; border-radius: 0.75rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05); }
+    .badge-metric { display: inline-flex; align-items: center; padding: 0.25rem 0.6rem; border-radius: 9999px; font-weight: 600; font-size: 0.75rem; }
+    @media print {
+      header, .no-print { display: none !important; }
+      body { background: white; font-size: 11pt; }
+      .glass-card { box-shadow: none; border: 1px solid #ccc; page-break-inside: avoid; margin-bottom: 1.5rem; }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <a href="index.html" class="flex items-center space-x-2 text-blue-600 hover:text-blue-800 transition">
+          <i data-lucide="arrow-left" class="w-5 h-5"></i>
+          <span class="text-sm font-semibold">アプリへ戻る</span>
+        </a>
+        <span class="text-slate-300">|</span>
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-sm">
+            <i data-lucide="book-open" class="w-4 h-4"></i>
+          </div>
+          <h1 class="text-lg font-bold text-slate-900">メタ分析 指標解説＆結果の読み解き方ガイド</h1>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-2 no-print">
+        <button onclick="window.print()" class="inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg border border-slate-300 text-sm font-medium text-slate-700 bg-white hover:bg-slate-50 transition shadow-sm">
+          <i data-lucide="printer" class="w-4 h-4"></i>
+          <span>印刷・PDF保存</span>
+        </button>
+        <a href="index.html" class="inline-flex items-center space-x-1 px-4 py-1.5 rounded-lg bg-blue-600 text-white text-sm font-bold hover:bg-blue-700 transition shadow-sm">
+          <i data-lucide="zap" class="w-4 h-4"></i>
+          <span>分析を開始</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-6xl mx-auto px-4 sm:px-6 py-8 flex-1 space-y-10">
+
+    <!-- Hero Intro -->
+    <div class="glass-card p-6 sm:p-8 bg-gradient-to-br from-blue-900 via-indigo-900 to-slate-900 text-white shadow-xl">
+      <div class="max-w-3xl space-y-3">
+        <span class="px-3 py-1 bg-blue-500/30 border border-blue-400/40 rounded-full text-xs font-semibold text-blue-200 uppercase tracking-wider">
+          PRISMA 2020 & Cochrane Handbook 準拠
+        </span>
+        <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+          メタ分析の各指標を理解し、結果を正しく読み解くための完全手引き
+        </h2>
+        <p class="text-slate-300 text-sm sm:text-base leading-relaxed">
+          メタ分析（Meta-Analysis）は、同一の臨床課題や科学的問いに取り組む複数の独立した論文を統計的に統合し、最高峰のエビデンスを導き出す手法です。
+          本ガイドでは、フォレストプロットや統合レポートに登場する各種専門統計量の意味と、導き出された結果を実務や意思決定にどう活かすかを分かりやすく解説します。
+        </p>
+      </div>
+
+      <!-- Quick Index -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-slate-700/60 text-xs">
+        <a href="#section-metrics" class="p-3 bg-white/10 hover:bg-white/20 rounded-lg transition text-slate-200 flex items-center space-x-2">
+          <i data-lucide="activity" class="w-4 h-4 text-blue-300"></i>
+          <span>1. 各種統計指標の解説</span>
+        </a>
+        <a href="#section-forest" class="p-3 bg-white/10 hover:bg-white/20 rounded-lg transition text-slate-200 flex items-center space-x-2">
+          <i data-lucide="bar-chart-2" class="w-4 h-4 text-emerald-300"></i>
+          <span>2. フォレストプロットの解読</span>
+        </a>
+        <a href="#section-steps" class="p-3 bg-white/10 hover:bg-white/20 rounded-lg transition text-slate-200 flex items-center space-x-2">
+          <i data-lucide="compass" class="w-4 h-4 text-amber-300"></i>
+          <span>3. 結果を読み解く5ステップ</span>
+        </a>
+        <a href="#section-cases" class="p-3 bg-white/10 hover:bg-white/20 rounded-lg transition text-slate-200 flex items-center space-x-2">
+          <i data-lucide="check-circle-2" class="w-4 h-4 text-purple-300"></i>
+          <span>4. 実践ケーススタディ</span>
+        </a>
+      </div>
+    </div>
+
+
+    <!-- SECTION 1: STATISTICAL METRICS -->
+    <section id="section-metrics" class="space-y-6">
+      <div class="flex items-center space-x-3 border-b border-slate-200 pb-3">
+        <div class="w-9 h-9 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
+          <i data-lucide="activity" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h3 class="text-xl font-bold text-slate-900">1. 各種統計指標のリファレンス</h3>
+          <p class="text-xs text-slate-500">メタ分析で用いられる中核的な統計量とその意味・基準値</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        <!-- Card 1: Effect Size -->
+        <div class="glass-card p-6 border-l-4 border-l-blue-600 space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 class="font-bold text-slate-900 text-base flex items-center space-x-2">
+              <span>効果量 (Effect Size: SMD / Hedges' g)</span>
+            </h4>
+            <span class="badge-metric bg-blue-100 text-blue-800">効果の大きさ</span>
+          </div>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            研究ごとに測定尺度（テストの得点、改善スコア等）が異なる場合でも結果を共通基準で比較できるように、介入群と対照群の平均値の差を標準偏差で割って標準化した指標です。本システムでは小規模研究の偏りを補正した <b>Hedges' g</b> を採用しています。
+          </p>
+          <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs space-y-1">
+            <div class="font-semibold text-slate-700">Cohenによる判定基準 (目安):</div>
+            <ul class="list-disc list-inside text-slate-600 space-y-0.5 pl-1">
+              <li><b class="text-slate-800">|g| ≈ 0.20:</b> 小さな効果（Small Effect）</li>
+              <li><b class="text-blue-700">|g| ≈ 0.50:</b> 中等度の効果（Medium Effect）- 臨床的・実質的に意義がある水準</li>
+              <li><b class="text-emerald-700">|g| ≈ 0.80以上:</b> 大きな効果（Large Effect）- 肉眼や日常でも実感できる明確な差</li>
+            </ul>
+            <div class="text-[11px] text-slate-500 mt-1">※ 二値アウトカム（発症・死亡等）の場合は <b>オッズ比 (OR)</b> または <b>リスク比 (RR)</b>（1.0が無効果、1.0未満がリスク低減）を用います。</div>
+          </div>
+        </div>
+
+        <!-- Card 2: Fixed vs Random Effects -->
+        <div class="glass-card p-6 border-l-4 border-l-indigo-600 space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 class="font-bold text-slate-900 text-base flex items-center space-x-2">
+              <span>固定効果モデル vs 変量効果モデル</span>
+            </h4>
+            <span class="badge-metric bg-indigo-100 text-indigo-800">統合モデル</span>
+          </div>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            複数の研究を1つの総合結果に統合する際の統計学的「仮定」の違いです：
+          </p>
+          <div class="space-y-2 text-xs">
+            <div class="p-2.5 rounded bg-indigo-50/50 border border-indigo-100">
+              <span class="font-bold text-indigo-900">固定効果モデル (Fixed-Effect / Inverse-Variance):</span>
+              <p class="text-slate-600 text-[11px] mt-0.5">「全研究に共通する単一の真の効果が存在し、各研究の差は単なるサンプリング誤差に過ぎない」と仮定。研究デザインや対象集団が極めて同一である場合のみ適します。</p>
+            </div>
+            <div class="p-2.5 rounded bg-blue-50/50 border border-blue-100">
+              <span class="font-bold text-blue-900">変量効果モデル (Random-Effects / DerSimonian-Laird): <span class="text-emerald-700">【推奨】</span></span>
+              <p class="text-slate-600 text-[11px] mt-0.5">「患者背景、用量、実施地域等の違いにより、研究ごとに真の効果自体が分布している」と仮定。医学・生命科学・臨床メタ分析では通常このモデルが標準とされます。</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3: Heterogeneity I-squared & Q -->
+        <div class="glass-card p-6 border-l-4 border-l-amber-500 space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 class="font-bold text-slate-900 text-base flex items-center space-x-2">
+              <span>異質性統計量 (I² 統計量 & Cochran's Q)</span>
+            </h4>
+            <span class="badge-metric bg-amber-100 text-amber-800">ばらつきの評価</span>
+          </div>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            研究ごとの効果のばらつき（食い違い）が、「偶然の誤差によるもの」か「研究の本質的な違い（異質性）によるもの」かを評価する極めて重要な指標です。
+          </p>
+          <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs space-y-1">
+            <div class="font-semibold text-slate-700">I² (I-squared) の解釈基準 (Cochrane Handbook):</div>
+            <div class="grid grid-cols-2 gap-2 mt-1">
+              <div class="p-2 bg-emerald-50 text-emerald-900 rounded border border-emerald-200">
+                <b>0% 〜 25%: 低い異質性</b><br><span class="text-[11px] text-emerald-700">研究間で結果が一貫しており信頼度高</span>
+              </div>
+              <div class="p-2 bg-blue-50 text-blue-900 rounded border border-blue-200">
+                <b>25% 〜 50%: 中等度の異質性</b><br><span class="text-[11px] text-blue-700">一般的な臨床試験で許容される範囲</span>
+              </div>
+              <div class="p-2 bg-amber-50 text-amber-900 rounded border border-amber-200">
+                <b>50% 〜 75%: 高度の異質性</b><br><span class="text-[11px] text-amber-700">研究間の条件差（サブグループ）要検討</span>
+              </div>
+              <div class="p-2 bg-rose-50 text-rose-900 rounded border border-rose-200">
+                <b>75% 〜 100%: 著しい異質性</b><br><span class="text-[11px] text-rose-700">単一統合結果の解釈に強い注意が必要</span>
+              </div>
+            </div>
+            <div class="text-[11px] text-slate-500 mt-2">
+              <b>Cochran's Q 検定 & p 値:</b> 異質性が存在しないという帰無仮説の検定。検出力を考慮し、通常 <code>p &lt; 0.10</code> で有意な異質性ありと判定します。
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 4: Confidence Interval & Significance -->
+        <div class="glass-card p-6 border-l-4 border-l-emerald-600 space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 class="font-bold text-slate-900 text-base flex items-center space-x-2">
+              <span>95% 信頼区間 (95% CI) & p 値</span>
+            </h4>
+            <span class="badge-metric bg-emerald-100 text-emerald-800">推定の精度と確信</span>
+          </div>
+          <p class="text-xs text-slate-600 leading-relaxed">
+            サンプルデータから推測される「真の効果量」が95%の確率で収まる数値範囲を示します。
+          </p>
+          <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs space-y-2">
+            <div class="p-2 rounded bg-white border border-slate-200">
+              <span class="font-bold text-slate-800">✅ 統計的有意 (p &lt; 0.05):</span>
+              <p class="text-slate-600 text-[11px] mt-0.5">
+                95%信頼区間が<b>「無効果線 (Line of No Effect: 差は0.0、比率は1.0)」をまたいでいない</b>状態（例: <code>0.25 to 0.75</code> や <code>-0.80 to -0.20</code>）。偶然による差ではなく、統計的に有意な効果があると判定されます。
+              </p>
+            </div>
+            <div class="p-2 rounded bg-white border border-slate-200">
+              <span class="font-bold text-slate-800">⚠️ 有意差なし (p ≥ 0.05):</span>
+              <p class="text-slate-600 text-[11px] mt-0.5">
+                95%信頼区間が無効果線を含んでいる状態（例: <code>-0.15 to +0.45</code> や <code>0.85 to 1.30</code>）。現段階のデータでは効果の有無を断定できません。
+              </p>
+            </div>
+            <div class="text-[11px] text-slate-500">
+              <b>区間の幅:</b> 幅が狭いほど推定のブレが少なく精度が高いことを意味し、幅が広い場合はサンプルサイズ不足やブレが大きいことを示します。
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- SECTION 2: FOREST PLOT ANATOMY -->
+    <section id="section-forest" class="space-y-6">
+      <div class="flex items-center space-x-3 border-b border-slate-200 pb-3">
+        <div class="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+          <i data-lucide="bar-chart-2" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h3 class="text-xl font-bold text-slate-900">2. フォレストプロット（Forest Plot）の完全解読ガイド</h3>
+          <p class="text-xs text-slate-500">メタ分析の核心であるフォレストプロットの図表の見方をパーツ別に徹底解説</p>
+        </div>
+      </div>
+
+      <!-- Diagram Card -->
+      <div class="glass-card p-6 bg-white space-y-6">
+        <div class="border-2 border-slate-200 rounded-xl p-5 bg-slate-50/60">
+          <h4 class="text-sm font-bold text-slate-800 mb-3 flex items-center space-x-1.5">
+            <i data-lucide="eye" class="w-4 h-4 text-emerald-600"></i>
+            <span>フォレストプロットの模式図と各パーツの役割</span>
+          </h4>
+
+          <!-- Mock ASCII / Visual Diagram -->
+          <div class="font-mono text-xs bg-slate-900 text-slate-100 p-4 rounded-lg overflow-x-auto leading-relaxed shadow-inner">
+研究名・著者 (年)            SMD [95% CI]      重み %      ← 対照群に有利 | 介入群に有利 →
+──────────────────────────────────────────────────────────────────────────────────
+Smith et al. (2021)       0.45 [ 0.12, 0.78]   28.4%            |        ■────
+Johnson et al. (2022)     0.62 [ 0.25, 0.99]   22.1%            |          ■──────
+Tanaka et al. (2023)      0.30 [-0.08, 0.68]   20.5%        ────|───■────
+Miller et al. (2024)      0.55 [ 0.20, 0.90]   29.0%            |       ■────
+──────────────────────────────────────────────────────────────────────────────────
+変量効果統合 (RE Model)    0.48 [ 0.28, 0.68]  100.0%            |        <◆>
+                                                                ▲         ▲
+                                                        無効果線(0.0)  統合ダイヤモンド
+          </div>
+
+          <!-- Components Breakdown Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-5 text-xs">
+            <div class="p-3 bg-white rounded-lg border border-slate-200 shadow-sm space-y-1">
+              <div class="font-bold text-blue-700 flex items-center space-x-1">
+                <span>■ 正方形 (Square Marker)</span>
+              </div>
+              <p class="text-slate-600">各個別研究の<b>効果量の点推定値</b>を表します。正方形の<b>面積（大きさ）</b>はその研究が持つ<b>統計的重み (Weight)</b> を反映しており、症例数が多く誤差が小さい研究ほど大きく描かれます。</p>
+            </div>
+
+            <div class="p-3 bg-white rounded-lg border border-slate-200 shadow-sm space-y-1">
+              <div class="font-bold text-indigo-700 flex items-center space-x-1">
+                <span>── 水平バー (Horizontal Line)</span>
+              </div>
+              <p class="text-slate-600">各個別研究の<b>95%信頼区間の幅</b>です。線が短いほど推定の精度が高く、線が長い研究はサンプル数が少ないかデータのばらつきが大きいことを示します。</p>
+            </div>
+
+            <div class="p-3 bg-white rounded-lg border border-slate-200 shadow-sm space-y-1">
+              <div class="font-bold text-slate-700 flex items-center space-x-1">
+                <span>│ 垂直実線 (Line of No Effect)</span>
+              </div>
+              <p class="text-slate-600"><b>無効果線</b>です（差の場合は <code>0.0</code>、オッズ比・リスク比の場合は <code>1.0</code>）。各研究の水平バーがこの垂直線をまたいでいる場合、その研究単体では統計的有意差がなかったことを意味します。</p>
+            </div>
+
+            <div class="p-3 bg-white rounded-lg border border-slate-200 shadow-sm space-y-1">
+              <div class="font-bold text-amber-700 flex items-center space-x-1">
+                <span>: 垂直破線 (Dashed Line)</span>
+              </div>
+              <p class="text-slate-600"><b>統合効果量の中心軸</b>を示します。全研究を統合した最終的な平均効果量の位置を通るガイドラインです。</p>
+            </div>
+
+            <div class="p-3 bg-white rounded-lg border border-slate-200 shadow-sm space-y-1">
+              <div class="font-bold text-emerald-700 flex items-center space-x-1">
+                <span>◆ ダイヤモンド (Pooled Diamond)</span>
+              </div>
+              <p class="text-slate-600">メタ分析の<b>最終統合結果</b>です。ひし形の<b>中心</b>が統合効果量の点推定値、ひし形の<b>左右の頂点の幅</b>が統合95%信頼区間を表します。</p>
+            </div>
+
+            <div class="p-3 bg-white rounded-lg border border-slate-200 shadow-sm space-y-1">
+              <div class="font-bold text-purple-700 flex items-center space-x-1">
+                <span>📊 重み列 (Weight %)</span>
+              </div>
+              <p class="text-slate-600">逆分散法または変量効果法により計算された、全体結果に対する各研究の寄与割合（合計100%）。特定の1研究だけに重みが偏っていないかを確認します。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- SECTION 3: 5-STEP INTERPRETATION GUIDE -->
+    <section id="section-steps" class="space-y-6">
+      <div class="flex items-center space-x-3 border-b border-slate-200 pb-3">
+        <div class="w-9 h-9 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center font-bold">
+          <i data-lucide="compass" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h3 class="text-xl font-bold text-slate-900">3. 結果をどう読み解くのか：実践5ステップフロー</h3>
+          <p class="text-xs text-slate-500">分析結果が出たときに、専門家がどのような順序でチェックし判断を下すかの標準手順</p>
+        </div>
+      </div>
+
+      <div class="space-y-4">
+
+        <!-- Step 1 -->
+        <div class="glass-card p-5 border-l-4 border-l-blue-600 flex flex-col md:flex-row gap-4">
+          <div class="flex-shrink-0 flex items-center md:flex-col justify-center w-12 h-12 rounded-xl bg-blue-100 text-blue-800 font-extrabold text-lg">
+            01
+          </div>
+          <div class="flex-1 space-y-2">
+            <div class="flex items-center justify-between">
+              <h4 class="font-bold text-slate-900 text-base">Step 1: 統合ダイヤモンドの位置と有意性を確認する</h4>
+              <span class="text-xs bg-blue-100 text-blue-800 font-semibold px-2 py-0.5 rounded">方向性と有意差</span>
+            </div>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              まず最下部の<b>統合ダイヤモンド（◆）</b>を見ます。
+              ダイヤモンド全体が無効果線（0.0 または 1.0）のどちら側に位置しているか、そして<b>無効果線に触れずに離れているか</b>を確認します。
+            </p>
+            <div class="bg-blue-50/60 p-2.5 rounded border border-blue-200 text-xs text-blue-950 font-medium">
+              💡 <b>判定の要点:</b> ダイヤモンドが無効果線をまたいでいなければ「統計的に有意 (p &lt; 0.05)」。左右どちらの介入（例: 新薬群 vs プラセボ群）に有利かが一目瞭然です。
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="glass-card p-5 border-l-4 border-l-indigo-600 flex flex-col md:flex-row gap-4">
+          <div class="flex-shrink-0 flex items-center md:flex-col justify-center w-12 h-12 rounded-xl bg-indigo-100 text-indigo-800 font-extrabold text-lg">
+            02
+          </div>
+          <div class="flex-1 space-y-2">
+            <div class="flex items-center justify-between">
+              <h4 class="font-bold text-slate-900 text-base">Step 2: 効果の「大きさ（臨床的意義）」を評価する</h4>
+              <span class="text-xs bg-indigo-100 text-indigo-800 font-semibold px-2 py-0.5 rounded">臨床的実用性</span>
+            </div>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              統計的に有意（p &lt; 0.05）であっても、効果量が極めて小さければ実用上の価値は限定的です。
+              点推定値が実生活や臨床において意味のある大きさ（SMD ≥ 0.40〜0.50、OR ≤ 0.70 など）に達しているかを吟味します。
+            </p>
+            <div class="bg-indigo-50/60 p-2.5 rounded border border-indigo-200 text-xs text-indigo-950 font-medium">
+              💡 <b>注意点:</b> サンプル数が膨大になると、ごく微小な効果（SMD = 0.08 等）でも有意になってしまいます。「統計的有意差」と「臨床的・実質的有用性」を混同しないことが重要です。
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="glass-card p-5 border-l-4 border-l-amber-600 flex flex-col md:flex-row gap-4">
+          <div class="flex-shrink-0 flex items-center md:flex-col justify-center w-12 h-12 rounded-xl bg-amber-100 text-amber-800 font-extrabold text-lg">
+            03
+          </div>
+          <div class="flex-1 space-y-2">
+            <div class="flex items-center justify-between">
+              <h4 class="font-bold text-slate-900 text-base">Step 3: 異質性 (I²) を点検し、研究間の一致度を調べる</h4>
+              <span class="text-xs bg-amber-100 text-amber-800 font-semibold px-2 py-0.5 rounded">一貫性の検証</span>
+            </div>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              $I^2$ 統計量を確認します。$I^2 &lt; 25\%$ であれば研究間の結論は美しく揃っており強固なエビデンスです。
+              もし $I^2 &gt; 50\%$ の場合は、研究によって効果が大きく異なっている原因（患者の年齢層、病期、投与期間、測定尺度の違いなど）を考察する必要があります。
+            </p>
+            <div class="bg-amber-50/60 p-2.5 rounded border border-amber-200 text-xs text-amber-950 font-medium">
+              💡 <b>モデル選択:</b> 臨床研究では異質性が存在することが自然であるため、常に<b>変量効果モデル (Random-Effects Model)</b> の結果を主たる結論として採用するのが国際的標準です。
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 4 -->
+        <div class="glass-card p-5 border-l-4 border-l-emerald-600 flex flex-col md:flex-row gap-4">
+          <div class="flex-shrink-0 flex items-center md:flex-col justify-center w-12 h-12 rounded-xl bg-emerald-100 text-emerald-800 font-extrabold text-lg">
+            04
+          </div>
+          <div class="flex-1 space-y-2">
+            <div class="flex items-center justify-between">
+              <h4 class="font-bold text-slate-900 text-base">Step 4: 個別研究の重みの偏り・外れ値がないか確認する</h4>
+              <span class="text-xs bg-emerald-100 text-emerald-800 font-semibold px-2 py-0.5 rounded">脆弱性の点検</span>
+            </div>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              フォレストプロットの「重み (Weight %)」列を点検します。
+              1つの巨大研究が重みの70%以上を占めて全体を牽引していないか、他の小研究と正反対の結果を示している「外れ値」研究がないかを確認します。
+            </p>
+            <div class="bg-emerald-50/60 p-2.5 rounded border border-emerald-200 text-xs text-emerald-950 font-medium">
+              💡 <b>感度分析の視点:</b> 「その突出した研究を除外しても統合効果の有意性は保たれるか？」を考えることで、結論の頑健性（ロバストネス）が確かめられます。
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 5 -->
+        <div class="glass-card p-5 border-l-4 border-l-purple-600 flex flex-col md:flex-row gap-4">
+          <div class="flex-shrink-0 flex items-center md:flex-col justify-center w-12 h-12 rounded-xl bg-purple-100 text-purple-800 font-extrabold text-lg">
+            05
+          </div>
+          <div class="flex-1 space-y-2">
+            <div class="flex items-center justify-between">
+              <h4 class="font-bold text-slate-900 text-base">Step 5: バイアスリスクとGRADE確信度を総合して意思決定する</h4>
+              <span class="text-xs bg-purple-100 text-purple-800 font-semibold px-2 py-0.5 rounded">最終総合評価</span>
+            </div>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              数値だけでなく、採用された研究自体の「質（ランダム化の適切さ、盲検化、脱落率）」や、有意差が出なかった研究が発表されずに隠れている可能性（出版バイアス）を織り込んで総合判断します。
+            </p>
+            <div class="bg-purple-50/60 p-2.5 rounded border border-purple-200 text-xs text-purple-950 font-medium">
+              💡 <b>GRADE格付けの目安:</b>
+              <span class="inline-block ml-1"><b>High</b> (効果に強い確信) / <b>Moderate</b> (効果の可能性が高い) / <b>Low</b> (確信は限定的) / <b>Very Low</b> (極めて不確実)</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- SECTION 4: CASE STUDIES -->
+    <section id="section-cases" class="space-y-6">
+      <div class="flex items-center space-x-3 border-b border-slate-200 pb-3">
+        <div class="w-9 h-9 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center font-bold">
+          <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h3 class="text-xl font-bold text-slate-900">4. 実践ケーススタディ（典型例で学ぶ判定パターン）</h3>
+          <p class="text-xs text-slate-500">実際のメタ分析でよく遭遇する3つの代表的なシナリオと模範的な解釈</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs">
+
+        <!-- Case 1 -->
+        <div class="glass-card p-5 border-t-4 border-t-emerald-500 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded font-bold">ケース A: 強いエビデンス</span>
+            <span class="text-emerald-700 font-bold">明確な有効性</span>
+          </div>
+          <div class="bg-slate-50 p-3 rounded border border-slate-200 font-mono space-y-1 text-[11px]">
+            <div>統合効果 (RE): <b>SMD = 0.65</b></div>
+            <div>95% CI: <b>[0.42, 0.88]</b></div>
+            <div>p値: <b>p &lt; 0.001</b></div>
+            <div>異質性 I²: <b>18.5%</b> (p = 0.29)</div>
+          </div>
+          <div class="space-y-1.5 text-slate-700 leading-relaxed">
+            <div class="font-bold text-slate-900">【解釈と結論】</div>
+            <p>95%信頼区間が無効果線0を大きく上回っており極めて有意。効果量も0.65と中等度〜大で実質的な改善効果が認められます。研究間の異質性も18.5%と非常に低く、複数の独立した研究で再現性高く効果が確認された最高水準のエビデンスと言えます。</p>
+          </div>
+        </div>
+
+        <!-- Case 2 -->
+        <div class="glass-card p-5 border-t-4 border-t-amber-500 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="px-2 py-0.5 bg-amber-100 text-amber-800 rounded font-bold">ケース B: 高異質性・境界域</span>
+            <span class="text-amber-700 font-bold">慎重な解釈要</span>
+          </div>
+          <div class="bg-slate-50 p-3 rounded border border-slate-200 font-mono space-y-1 text-[11px]">
+            <div>統合効果 (RE): <b>SMD = 0.38</b></div>
+            <div>95% CI: <b>[-0.05, 0.81]</b></div>
+            <div>p値: <b>p = 0.082</b></div>
+            <div>異質性 I²: <b>74.2%</b> (p &lt; 0.001)</div>
+          </div>
+          <div class="space-y-1.5 text-slate-700 leading-relaxed">
+            <div class="font-bold text-slate-900">【解釈と結論】</div>
+            <p>95% CIが無効果線0をまたいでおり統計的有意差はありません（p &gt; 0.05）。加えて $I^2 = 74.2\%$ と研究間のばらつきが極めて高いため、単純に数値を統合して「効果がある/ない」と結論づけるのは危険です。投与量や対象集団別の層別分析（サブグループ解析）が必要です。</p>
+          </div>
+        </div>
+
+        <!-- Case 3 -->
+        <div class="glass-card p-5 border-t-4 border-t-blue-500 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="px-2 py-0.5 bg-blue-100 text-blue-800 rounded font-bold">ケース C: リスク低減効果</span>
+            <span class="text-blue-700 font-bold">発症リスク42%減</span>
+          </div>
+          <div class="bg-slate-50 p-3 rounded border border-slate-200 font-mono space-y-1 text-[11px]">
+            <div>統合オッズ比 (RE): <b>OR = 0.58</b></div>
+            <div>95% CI: <b>[0.45, 0.74]</b></div>
+            <div>p値: <b>p &lt; 0.001</b></div>
+            <div>異質性 I²: <b>32.0%</b> (p = 0.16)</div>
+          </div>
+          <div class="space-y-1.5 text-slate-700 leading-relaxed">
+            <div class="font-bold text-slate-900">【解釈と結論】</div>
+            <p>二値アウトカムの分析。オッズ比が無効果基準1.0を大幅に下回っており（95% CIの上限でも0.74）、介入群においてイベント発症オッズが約42%（1 - 0.58）有意に抑制されたことを示します。異質性も中等度以下で信頼性の高い結果です。</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Bottom CTA Bar -->
+    <div class="p-6 rounded-xl bg-slate-900 text-white flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div>
+        <h4 class="text-base font-bold">実際にキーワードを入力してメタ分析を試してみましょう</h4>
+        <p class="text-xs text-slate-400 mt-1">日本語で入力しても、海外オープンジャーナルから論文を自動検索し、PRISMAレポートを作成できます。</p>
+      </div>
+      <a href="index.html" class="inline-flex items-center space-x-2 px-6 py-3 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 transition shadow-lg whitespace-nowrap text-sm">
+        <i data-lucide="search" class="w-4 h-4"></i>
+        <span>論文検索・メタ分析画面へ</span>
+      </a>
+    </div>
+
+  </main>
+
+  <footer class="bg-white border-t border-slate-200 py-6 text-center text-xs text-slate-500">
+    <p>© 2026 OpenJournalMetaAnalyzer - PRISMA 2020 & Cochrane Handbook Compliant Systematic Review Platform</p>
+  </footer>
+
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>

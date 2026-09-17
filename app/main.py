@@ -210,3 +210,9 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 async def serve_index():
     """Serve main SPA web dashboard."""
     return FileResponse("app/static/index.html")
+
+@app.get("/guide.html")
+@app.get("/guide")
+async def serve_guide():
+    """Serve standalone metrics and interpretation guide page."""
+    return FileResponse("app/static/guide.html")
