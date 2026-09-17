@@ -1,4 +1,4 @@
-﻿"""Base models and interfaces for paper search and PRISMA tracking."""
+"""Base models and interfaces for paper search and PRISMA tracking."""
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
 
@@ -51,5 +51,7 @@ class PrismaIdentification(BaseModel):
 
 class SearchResponse(BaseModel):
     query: str
+    original_query: Optional[str] = None
+    was_translated: bool = False
     prisma_identification: PrismaIdentification
     papers: List[Paper] = Field(default_factory=list)

@@ -1,4 +1,4 @@
-﻿"""PRISMA 2020 compliant qualitative evidence synthesis generator."""
+"""PRISMA 2020 compliant qualitative evidence synthesis generator."""
 import os
 import logging
 from typing import List, Optional
@@ -31,8 +31,10 @@ class EvidenceSynthesizer:
                 papers_summary_text = ""
                 for i, p in enumerate(included_papers, 1):
                     authors_str = ", ".join(p.authors[:3]) + (" et al." if len(p.authors) > 3 else "")
+                    paper_url = f"https://doi.org/{p.doi}" if p.doi else (p.oa_url or p.pdf_url or "")
                     papers_summary_text += (
                         f"\nStudy {i}: [{authors_str}, {p.year or 'n.d.'}] \"{p.title}\"\n"
+                        f"Paper URL: {paper_url} | PDF URL: {p.pdf_url or 'N/A'}\n"
                         f"Journal: {p.journal} | Citations: {p.citations} | DOI: {p.doi or 'N/A'}\n"
                         f"Abstract: {p.abstract[:500]}...\n"
                         f"Extracted Effect: {p.effect_type} = {p.effect_size} (95% CI: {p.ci_lower} - {p.ci_upper}, N={p.sample_size or 'N/A'})\n"
@@ -56,11 +58,13 @@ Included Studies:
 {papers_summary_text}
 
 Generate a comprehensive, academic-grade Systematic Review & Meta-Analysis Synthesis Report in Japanese (with English academic terms when appropriate).
+CRITICAL: In "2. 採用研究の特性一覧 (Characteristics of Included Studies)", format as a Markdown table and YOU MUST include clickable markdown links to each paper ([Title](Paper_URL)) and direct OA/PDF links ([OA Fulltext](URL) / [PDF](URL)).
+
 Format the output in clear, professional Markdown with these exact PRISMA 2020 sections:
 
 1. **背景と目的 (Rationale & Objectives / PICO Framework)**:
    - Population (対象集団), Intervention/Exposure (介入/曝露), Comparison (対照群), Outcome (評価指標)
-2. **採用研究の特性一覧 (Characteristics of Included Studies)** (Markdown表形式)
+2. **採用研究の特性一覧 (Characteristics of Included Studies)** (Markdown表形式・論文への直接リンク付き)
 3. **結果の統合と知見 (Synthesis of Findings)**:
    - 諸研究間での一貫した知見 (Consensus)
    - 相反する結果や不一致点 (Discrepancies & Divergence)
@@ -110,8 +114,8 @@ Format the output in clear, professional Markdown with these exact PRISMA 2020 s
 
         # 2. Characteristics Table
         lines.append("## 2. 採用研究の特性一覧 (Characteristics of Included Studies)")
-        lines.append("| No. | 筆頭著者・年 | ジャーナル | サンプル数 (N) | 推定効果量 (95% CI) | 被引用数 | オープンアクセス |")
-        lines.append("|:---:|:---|:---|:---:|:---:|:---:|:---:|")
+        lines.append("| No. | 採用論文タイトル（論文リンク） | 筆頭著者・年 | ジャーナル | 推定効果量 (95% CI) | N数 | 被引用 | 論文フルテキスト・PDFリンク |")
+        lines.append("|:---:|:---|:---|:---|:---:|:---:|:---:|:---:|")
         for i, p in enumerate(papers, 1):
             auth = (p.authors[0] if p.authors else "Unknown") + (f" ({p.year})" if p.year else "")
             jrnl = (p.journal[:25] + "...") if p.journal and len(p.journal) > 25 else (p.journal or "Open Journal")
@@ -120,8 +124,22 @@ Format the output in clear, professional Markdown with these exact PRISMA 2020 s
                 eff_str = f"{p.effect_type[:2]} {p.effect_size:.2f} [{p.ci_lower:.2f}, {p.ci_upper:.2f}]"
             else:
                 eff_str = "定性評価"
-            oa_badge = f"[リンク]({p.oa_url})" if p.oa_url else "Yes"
-            lines.append(f"| {i} | {auth} | {jrnl} | {n_str} | {eff_str} | {p.citations:,} | {oa_badge} |")
+            
+            # Direct paper URL (DOI preferred, then OA URL, then PDF)
+            paper_url = f"https://doi.org/{p.doi}" if p.doi else (p.oa_url or p.pdf_url or "#")
+            clean_title = p.title.replace("|", "/").replace("[", "(").replace("]", ")")
+            title_link = f"[{clean_title}]({paper_url})"
+
+            link_parts = []
+            if p.oa_url:
+                link_parts.append(f"[🔗 OA全文]({p.oa_url})")
+            if p.pdf_url:
+                link_parts.append(f"[📄 PDF]({p.pdf_url})")
+            if p.doi and not p.oa_url and not p.pdf_url:
+                link_parts.append(f"[🌐 DOI]({paper_url})")
+            links_cell = " · ".join(link_parts) if link_parts else "Open Access"
+
+            lines.append(f"| {i} | {title_link} | {auth} | {jrnl} | {eff_str} | {n_str} | {p.citations:,} | {links_cell} |")
         lines.append("")
 
         # 3. Synthesis of Findings

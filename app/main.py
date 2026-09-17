@@ -1,4 +1,4 @@
-﻿"""FastAPI web server and API routes for OpenJournalMetaAnalyzer."""
+"""FastAPI web server and API routes for OpenJournalMetaAnalyzer."""
 import csv
 import io
 from typing import List, Dict, Any, Optional
@@ -58,13 +58,23 @@ class PrismaFlowCounts(BaseModel):
     studies_included_quantitative: int
     exclusion_reasons: Dict[str, int]
 
+from .search.translator import translate_query
+
 @app.post("/api/search", response_model=SearchResponse)
 async def api_search(query: SearchQuery):
     """Search open-access papers and extract preliminary statistical indicators."""
-    if not query.keyword.strip():
+    orig_kw = query.keyword.strip()
+    if not orig_kw:
         raise HTTPException(status_code=400, detail="Search keyword cannot be empty.")
     
+    # Auto-translate Japanese query to English if needed
+    eng_kw, was_trans = translate_query(orig_kw)
+    query.keyword = eng_kw
+    
     resp = await aggregator.search(query)
+    resp.original_query = orig_kw
+    resp.was_translated = was_trans
+    
     # Enrich each paper with automatic metric extraction
     enriched_papers = []
     for idx, p in enumerate(resp.papers, 1):

@@ -5,6 +5,8 @@
 
 const state = {
   keyword: "",
+  originalKeyword: "",
+  wasTranslated: false,
   papers: [],
   prismaCounts: {
     records_identified: 0,
@@ -74,6 +76,58 @@ function switchTab(tabId) {
       }
     }, 100);
   }
+}
+
+// --- Japanese Detection & Translation Helpers ---
+function isJapanese(text) {
+  return /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF]/.test(text);
+}
+
+async function translateQueryToEnglish(queryText) {
+  const trimmed = queryText.trim();
+  if (!isJapanese(trimmed)) {
+    return { englishQuery: trimmed, wasTranslated: false };
+  }
+
+  // 1. If Gemini API key is available, use Gemini for high-accuracy academic translation
+  if (state.geminiApiKey) {
+    try {
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${state.geminiApiKey}`;
+      const prompt = `Translate the following Japanese research topic/keywords into standard English scientific search keywords. Return ONLY the English keywords (no quotes, no punctuation, no explanation):\n${trimmed}`;
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const translated = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim().replace(/["']/g, "");
+        if (translated) {
+          return { englishQuery: translated, wasTranslated: true };
+        }
+      }
+    } catch (e) {
+      console.warn("Gemini translation error, falling back to open API:", e);
+    }
+  }
+
+  // 2. Free Open Translation API (MyMemory with CORS enabled)
+  try {
+    const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(trimmed)}&langpair=ja|en`;
+    const res = await fetch(url);
+    if (res.ok) {
+      const data = await res.json();
+      const translated = data.responseData?.translatedText;
+      if (translated && !translated.startsWith("MYMEMORY WARNING")) {
+        const cleaned = translated.replace(/[.!]/g, "").trim();
+        return { englishQuery: cleaned, wasTranslated: true };
+      }
+    }
+  } catch (e) {
+    console.warn("MyMemory translation error:", e);
+  }
+
+  return { englishQuery: trimmed, wasTranslated: false };
 }
 
 // --- Search Engine (Browser Direct OpenAlex & Open-Access API) ---
@@ -189,25 +243,47 @@ function extractMetrics(text, fallbackIndex = 1) {
 }
 
 async function executeSearch(isOneClickAuto = false) {
-  const kw = document.getElementById("search-keyword").value.trim();
-  if (!kw) {
+  const inputEl = document.getElementById("search-keyword");
+  const rawKw = inputEl?.value.trim() || "";
+  if (!rawKw) {
     alert("検索キーワードを入力してください。");
     return;
   }
-  state.keyword = kw;
+
+  const loadingEl = document.getElementById("search-loading");
+  const loadingTextEl = document.getElementById("search-loading-text");
+  const summaryEl = document.getElementById("ident-summary-card");
+  const resultsContainer = document.getElementById("search-results-container");
+
+  loadingEl?.classList.remove("hidden");
+  summaryEl?.classList.add("hidden");
+  if (resultsContainer) resultsContainer.innerHTML = "";
+
+  // 1. Japanese-to-English Auto Translation
+  let searchKw = rawKw;
+  let wasTranslated = false;
+
+  if (isJapanese(rawKw)) {
+    if (loadingTextEl) loadingTextEl.innerText = `日本語「${rawKw}」を検知しました。学術英語に翻訳中...`;
+    const transResult = await translateQueryToEnglish(rawKw);
+    searchKw = transResult.englishQuery;
+    wasTranslated = transResult.wasTranslated;
+  }
+
+  state.originalKeyword = rawKw;
+  state.keyword = searchKw;
+  state.wasTranslated = wasTranslated;
+
+  if (loadingTextEl) {
+    loadingTextEl.innerText = wasTranslated 
+      ? `翻訳キーワード「${searchKw}」で海外オープンジャーナルを検索中...`
+      : `「${searchKw}」で海外オープンジャーナルを検索中...`;
+  }
 
   const yearStart = parseInt(document.getElementById("opt-year-start")?.value) || null;
   const yearEnd = parseInt(document.getElementById("opt-year-end")?.value) || null;
   const maxResults = parseInt(document.getElementById("opt-max-results")?.value) || 20;
   const sortBy = document.getElementById("opt-sort-by")?.value || "relevance";
-
-  const loadingEl = document.getElementById("search-loading");
-  const summaryEl = document.getElementById("ident-summary-card");
-  const resultsContainer = document.getElementById("search-results-container");
-
-  loadingEl.classList.remove("hidden");
-  summaryEl.classList.add("hidden");
-  resultsContainer.innerHTML = "";
 
   try {
     let filters = ["is_oa:true"];
@@ -219,7 +295,7 @@ async function executeSearch(isOneClickAuto = false) {
     if (sortBy === "citations") sortParam = "&sort=cited_by_count:desc";
     else if (sortBy === "year") sortParam = "&sort=publication_year:desc";
 
-    const openAlexUrl = `https://api.openalex.org/works?search=${encodeURIComponent(kw)}&filter=${filters.join(",")}&per_page=${maxResults}${sortParam}`;
+    const openAlexUrl = `https://api.openalex.org/works?search=${encodeURIComponent(searchKw)}&filter=${filters.join(",")}&per_page=${maxResults}${sortParam}`;
     
     const resp = await fetch(openAlexUrl, {
       headers: { "Accept": "application/json" }
@@ -293,10 +369,26 @@ async function executeSearch(isOneClickAuto = false) {
     state.prismaCounts.duplicates_removed = duplicatesCount;
     state.prismaCounts.records_screened = parsedPapers.length;
 
+    // Render translation indicator
+    const transIndicatorEl = document.getElementById("search-translation-indicator");
+    if (transIndicatorEl) {
+      if (wasTranslated) {
+        transIndicatorEl.innerHTML = `
+          <div class="inline-flex items-center space-x-2 px-3 py-1 bg-amber-50 border border-amber-200 text-amber-900 rounded-lg text-xs mb-3 font-medium">
+            <span class="font-bold">🇯🇵 日本語入力:</span>「${escapeHtml(rawKw)}」
+            <span>&rarr;</span>
+            <span class="font-bold text-blue-700">🇬🇧 英語翻訳:</span>「${escapeHtml(searchKw)}」で海外ジャーナルを検索しました
+          </div>`;
+        transIndicatorEl.classList.remove("hidden");
+      } else {
+        transIndicatorEl.classList.add("hidden");
+      }
+    }
+
     document.getElementById("stat-total-ident").innerText = totalIdentified;
     document.getElementById("stat-dup-removed").innerText = duplicatesCount;
     document.getElementById("stat-unique-screened").innerText = parsedPapers.length;
-    summaryEl.classList.remove("hidden");
+    summaryEl?.classList.remove("hidden");
 
     document.getElementById("badge-ident-count").innerText = totalIdentified;
     document.getElementById("badge-ident-count").classList.remove("hidden");
@@ -306,7 +398,6 @@ async function executeSearch(isOneClickAuto = false) {
     renderScreeningList();
     renderMetaDataMatrix();
 
-    // If One-Click Auto Analysis was selected, immediately compute meta-analysis and generate report!
     if (isOneClickAuto && parsedPapers.length > 0) {
       runMetaAnalysis();
       await generateSynthesis();
@@ -315,12 +406,14 @@ async function executeSearch(isOneClickAuto = false) {
   } catch (err) {
     alert("論文検索エラー: " + err.message);
   } finally {
-    loadingEl.classList.add("hidden");
+    loadingEl?.classList.add("hidden");
+    if (loadingTextEl) loadingTextEl.innerText = "海外オープンジャーナル論文を検索中...";
   }
 }
 
 function renderSearchResults(papers) {
   const container = document.getElementById("search-results-container");
+  if (!container) return;
   container.innerHTML = "";
 
   if (!papers || papers.length === 0) {
@@ -331,7 +424,11 @@ function renderSearchResults(papers) {
   papers.forEach((p, idx) => {
     const authorsStr = p.authors.slice(0, 4).join(", ") + (p.authors.length > 4 ? " et al." : "");
     const card = document.createElement("div");
-    card.className = "glass-card p-5 bg-white border border-slate-200 hover:border-blue-300 transition space-y-2";
+    card.className = "glass-card p-5 bg-white border border-slate-200 hover:border-blue-300 transition space-y-2.5";
+    
+    // Direct paper link
+    const paperUrl = p.doi ? `https://doi.org/${p.doi}` : (p.oa_url || p.pdf_url || '#');
+
     card.innerHTML = `
       <div class="flex items-start justify-between gap-3">
         <div class="space-y-1">
@@ -342,7 +439,11 @@ function renderSearchResults(papers) {
             <span class="text-xs text-slate-500 font-medium">被引用: ${p.citations}回</span>
           </div>
           <h3 class="text-base font-bold text-slate-900 leading-snug">
-            <span class="text-blue-600 font-bold mr-1">#${idx + 1}</span> ${escapeHtml(p.title)}
+            <span class="text-blue-600 font-bold mr-1">#${idx + 1}</span> 
+            <a href="${paperUrl}" target="_blank" class="hover:text-blue-600 hover:underline inline-flex items-center gap-1 group" title="論文ページを開く">
+              <span>${escapeHtml(p.title)}</span>
+              <i data-lucide="external-link" class="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 shrink-0"></i>
+            </a>
           </h3>
           <p class="text-xs text-slate-600">${escapeHtml(authorsStr)} - <i class="text-slate-500">${escapeHtml(p.journal || '')}</i></p>
         </div>
@@ -354,9 +455,9 @@ function renderSearchResults(papers) {
 
       <div class="flex items-center justify-between text-xs pt-2 border-t border-slate-100">
         <div class="flex items-center space-x-3">
-          ${p.doi ? `<a href="https://doi.org/${p.doi}" target="_blank" class="text-blue-600 hover:underline flex items-center space-x-1"><i data-lucide="external-link" class="w-3.5 h-3.5"></i><span>DOI</span></a>` : ''}
-          ${p.oa_url ? `<a href="${p.oa_url}" target="_blank" class="text-emerald-700 hover:underline flex items-center space-x-1"><i data-lucide="globe" class="w-3.5 h-3.5"></i><span>OAページ</span></a>` : ''}
-          ${p.pdf_url ? `<a href="${p.pdf_url}" target="_blank" class="text-red-600 hover:underline flex items-center space-x-1"><i data-lucide="file-text" class="w-3.5 h-3.5"></i><span>PDF</span></a>` : ''}
+          ${p.doi ? `<a href="https://doi.org/${p.doi}" target="_blank" class="font-semibold text-blue-600 hover:underline flex items-center space-x-1"><i data-lucide="globe" class="w-3.5 h-3.5"></i><span>DOI: ${p.doi}</span></a>` : ''}
+          ${p.oa_url ? `<a href="${p.oa_url}" target="_blank" class="font-semibold text-emerald-700 hover:underline flex items-center space-x-1"><i data-lucide="book-open" class="w-3.5 h-3.5"></i><span>OA全文</span></a>` : ''}
+          ${p.pdf_url ? `<a href="${p.pdf_url}" target="_blank" class="font-semibold text-red-600 hover:underline flex items-center space-x-1"><i data-lucide="file-text" class="w-3.5 h-3.5"></i><span>PDF</span></a>` : ''}
         </div>
         <div class="text-slate-500 font-medium">
           自動抽出指標: <b class="text-slate-800">${p.effect_type}: ${p.effect_size ? p.effect_size.toFixed(2) : '要調整'}</b> (N=${p.sample_size || 'N/A'})
@@ -441,13 +542,20 @@ function renderScreeningList() {
     const isIncluded = p.is_included_screening && p.is_included_eligibility;
     item.className = `p-4 rounded-lg border transition ${isIncluded ? 'bg-white border-slate-200' : 'bg-slate-100 border-slate-300 opacity-70'}`;
     
+    const paperUrl = p.doi ? `https://doi.org/${p.doi}` : (p.oa_url || p.pdf_url || '#');
+
     item.innerHTML = `
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div class="flex items-start space-x-3 flex-1">
           <input type="checkbox" id="chk-include-${idx}" class="mt-1 w-4 h-4 text-blue-600 rounded cursor-pointer" ${isIncluded ? 'checked' : ''} />
           <div>
-            <div class="text-sm font-bold text-slate-900">${idx + 1}. ${escapeHtml(p.title)}</div>
-            <div class="text-xs text-slate-500">${escapeHtml(p.journal || '')} (${p.year || ''}) | 著者: ${escapeHtml(p.authors.slice(0, 2).join(", "))}</div>
+            <div class="text-sm font-bold text-slate-900">
+              ${idx + 1}. <a href="${paperUrl}" target="_blank" class="hover:text-blue-600 hover:underline">${escapeHtml(p.title)}</a>
+            </div>
+            <div class="text-xs text-slate-500 mt-0.5">
+              ${escapeHtml(p.journal || '')} (${p.year || ''}) | 著者: ${escapeHtml(p.authors.slice(0, 2).join(", "))} | 
+              <a href="${paperUrl}" target="_blank" class="text-blue-600 hover:underline">論文リンク &rarr;</a>
+            </div>
           </div>
         </div>
 
@@ -533,12 +641,14 @@ function renderMetaDataMatrix() {
     const tr = document.createElement("tr");
     tr.className = "hover:bg-slate-50";
     const authorShort = (p.authors[0] || "Author") + (p.year ? ` (${p.year})` : "");
+    const paperUrl = p.doi ? `https://doi.org/${p.doi}` : (p.oa_url || p.pdf_url || '#');
+
     tr.innerHTML = `
       <td class="p-2.5 border border-slate-200 text-center">
         <span class="inline-block w-2.5 h-2.5 bg-emerald-500 rounded-full"></span>
       </td>
       <td class="p-2.5 border border-slate-200 font-semibold text-slate-800" title="${escapeHtml(p.title)}">
-        ${escapeHtml(authorShort)}
+        <a href="${paperUrl}" target="_blank" class="hover:text-blue-600 hover:underline">${escapeHtml(authorShort)}</a>
       </td>
       <td class="p-2.5 border border-slate-200 text-slate-600 truncate max-w-[150px]">
         ${escapeHtml(p.journal || 'Open Access')}
@@ -949,7 +1059,7 @@ function copyReportMarkdown() {
 
 function downloadReportMarkdown() {
   if (!state.currentReportMarkdown) {
-    alert("ダウンロードするレポートがありません。先に「PRISMAレポートを生成」をクリックしてください。");
+    alert("ダウンロードするレポートがありません。先に「PRISMAレポートを作成」をクリックしてください。");
     return;
   }
   const filename = `PRISMA_Meta_Analysis_Report_${(state.keyword || 'report').replace(/\s+/g, '_')}.md`;
@@ -959,7 +1069,7 @@ function downloadReportMarkdown() {
 
 function downloadReportHtml() {
   if (!state.currentReportMarkdown) {
-    alert("ダウンロードするレポートがありません。先に「PRISMAレポートを生成」をクリックしてください。");
+    alert("ダウンロードするレポートがありません。先に「PRISMAレポートを作成」をクリックしてください。");
     return;
   }
   const renderedHtml = marked.parse(state.currentReportMarkdown);
@@ -974,10 +1084,11 @@ function downloadReportHtml() {
     h2 { font-size: 1.4rem; border-bottom: 1px solid #cbd5e1; padding-bottom: 6px; margin-top: 30px; color: #1e3a8a; }
     h3 { font-size: 1.15rem; color: #334155; margin-top: 20px; }
     table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-    th, td { border: 1px solid #cbd5e1; padding: 8px 12px; text-align: left; font-size: 0.9rem; }
+    th, td { border: 1px solid #cbd5e1; padding: 8px 12px; text-align: left; font-size: 0.85rem; }
     th { background-color: #f1f5f9; font-weight: 600; }
     ul { padding-left: 25px; }
     code { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+    a { color: #2563eb; text-decoration: underline; }
     .footer { margin-top: 50px; font-size: 0.8rem; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 15px; }
   </style>
 </head>
@@ -1010,8 +1121,9 @@ function printReportPdf() {
     h2 { font-size: 1.3rem; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-top: 24px; color: #1e3a8a; }
     h3 { font-size: 1.1rem; color: #334155; }
     table { width: 100%; border-collapse: collapse; margin: 15px 0; }
-    th, td { border: 1px solid #cbd5e1; padding: 6px 10px; text-align: left; font-size: 0.85rem; }
+    th, td { border: 1px solid #cbd5e1; padding: 6px 10px; text-align: left; font-size: 0.8rem; }
     th { background-color: #f8fafc; }
+    a { color: #2563eb; text-decoration: underline; }
     @media print {
       body { margin: 0; padding: 10mm; }
     }
@@ -1075,9 +1187,13 @@ async function callGeminiApiDirect(keyword, papers, meta) {
 - Heterogeneity: I² = ${meta.heterogeneity.i2.toFixed(1)}%, Cochran's Q = ${meta.heterogeneity.q.toFixed(2)} (p=${meta.heterogeneity.p.toFixed(4)})`;
   }
 
-  const papersDesc = papers.map((p, i) => 
-    `Study ${i+1}: [${(p.authors[0] || 'Unknown')} et al., ${p.year || 'n.d.'}] "${p.title}" | Journal: ${p.journal} | N=${p.sample_size || 'N/A'} | Effect: ${p.effect_type}=${p.effect_size} (95% CI: ${p.ci_lower}-${p.ci_upper})\nAbstract: ${p.abstract.slice(0, 400)}...`
-  ).join("\n\n");
+  const papersDesc = papers.map((p, i) => {
+    const paperUrl = p.doi ? `https://doi.org/${p.doi}` : (p.oa_url || p.pdf_url || '');
+    return `Study ${i+1}: [${(p.authors[0] || 'Unknown')} et al., ${p.year || 'n.d.'}] "${p.title}"
+Paper Link: ${paperUrl} | PDF Link: ${p.pdf_url || 'N/A'}
+Journal: ${p.journal} | N=${p.sample_size || 'N/A'} | Effect: ${p.effect_type}=${p.effect_size} (95% CI: ${p.ci_lower}-${p.ci_upper})
+Abstract: ${p.abstract.slice(0, 400)}...`;
+  }).join("\n\n");
 
   const prompt = `You are an expert scientific meta-analyst. Synthesize the following ${papers.length} open-access studies on "${keyword}" according to PRISMA 2020 guidelines:
 ${statsSummary}
@@ -1085,9 +1201,12 @@ ${statsSummary}
 Included Studies:
 ${papersDesc}
 
-Generate a comprehensive Systematic Review & Meta-Analysis Synthesis Report in Japanese (with English academic terms where standard). Use clear Markdown headings:
+Generate a comprehensive Systematic Review & Meta-Analysis Synthesis Report in Japanese (with English academic terms where standard).
+CRITICAL REQUIREMENT: In "2. 採用研究の特性一覧 (Characteristics of Included Studies)", format as a Markdown table and YOU MUST include clickable Markdown hyperlinks to each paper ([Paper Title](Paper_URL)) and explicit fulltext/PDF links ([OA Fulltext](URL) / [PDF](URL)).
+
+Use clear Markdown headings:
 1. 背景と目的 (PICO Framework)
-2. 採用研究の特性一覧 (Markdown Table)
+2. 採用研究の特性一覧 (Markdown Table with Clickable Paper Links)
 3. 結果の統合と知見 (Consensus, Discrepancies, Quantitative Interpretation)
 4. バイアスリスク評価 (Risk of Bias Assessment)
 5. エビデンスの確実性 (GRADE Certainty of Evidence)
@@ -1114,7 +1233,12 @@ function generateLocalPrismaReport(keyword, papers, meta) {
   const totalSample = papers.reduce((sum, p) => sum + (p.sample_size || 0), 0);
 
   let md = `# PRISMA 2020 準拠 エビデンス統合サマリーレポート\n\n`;
-  md += `**対象キーワード**: \`${keyword}\` | **採用オープンアクセス論文数**: ${k}件\n`;
+  
+  if (state.wasTranslated && state.originalKeyword) {
+    md += `**検索クエリ**: \`${state.originalKeyword}\` (英語翻訳: \`${keyword}\`) | **採用オープンアクセス論文数**: ${k}件\n`;
+  } else {
+    md += `**対象キーワード**: \`${keyword}\` | **採用オープンアクセス論文数**: ${k}件\n`;
+  }
   md += `**出版年範囲**: ${yearRange} | **総被引用数**: ${totalCitations.toLocaleString()}回 | **総被験者規模**: 約${totalSample.toLocaleString()}名\n\n`;
 
   md += `## 1. 背景と目的 (Rationale & PICO Framework)\n`;
@@ -1125,14 +1249,25 @@ function generateLocalPrismaReport(keyword, papers, meta) {
   md += `- **Outcome (主要評価指標)**: 有効性、相対リスク比、ハザード比、標準化平均差などのアウトカム\n\n`;
 
   md += `## 2. 採用研究の特性一覧 (Characteristics of Included Studies)\n\n`;
-  md += `| No. | 筆頭著者・出版年 | 掲載ジャーナル | 推定効果量 (95% CI) | サンプル数 (N) | 被引用数 | OAリンク |\n`;
-  md += `|:---:|:---|:---|:---:|:---:|:---:|:---:|\n`;
+  md += `| No. | 採用論文タイトル（論文リンク） | 筆頭著者・年 | 掲載ジャーナル | 推定効果量 (95% CI) | N数 | 被引用 | 論文フルテキスト・PDFリンク |\n`;
+  md += `|:---:|:---|:---|:---|:---:|:---:|:---:|:---:|\n`;
   papers.forEach((p, i) => {
     const auth = (p.authors[0] || 'Unknown') + (p.year ? ` (${p.year})` : '');
     const jrnl = (p.journal.length > 25 ? p.journal.slice(0, 25) + '...' : p.journal) || 'Open Access';
     const effStr = `${p.effect_type}: ${p.effect_size.toFixed(2)} [${p.ci_lower.toFixed(2)}, ${p.ci_upper.toFixed(2)}]`;
-    const oaLink = p.oa_url ? `[閲覧](${p.oa_url})` : 'Yes';
-    md += `| ${i+1} | ${auth} | ${jrnl} | ${effStr} | ${p.sample_size ? p.sample_size.toLocaleString() : 'N/A'} | ${p.citations.toLocaleString()} | ${oaLink} |\n`;
+    
+    // Direct paper link (DOI preferred, then OA URL, then PDF)
+    const paperUrl = p.doi ? `https://doi.org/${p.doi}` : (p.oa_url || p.pdf_url || '#');
+    const cleanTitle = (p.title || 'Untitled').replace(/[|\[\]]/g, '');
+    const titleLink = `[${cleanTitle}](${paperUrl})`;
+
+    const linkItems = [];
+    if (p.oa_url) linkItems.push(`[🔗 OA全文](${p.oa_url})`);
+    if (p.pdf_url) linkItems.push(`[📄 PDF](${p.pdf_url})`);
+    if (p.doi && !p.oa_url && !p.pdf_url) linkItems.push(`[🌐 DOI](${paperUrl})`);
+    const linksCell = linkItems.length > 0 ? linkItems.join(' · ') : `[論文リンク](${paperUrl})`;
+
+    md += `| ${i+1} | ${titleLink} | ${auth} | ${jrnl} | ${effStr} | ${p.sample_size ? p.sample_size.toLocaleString() : 'N/A'} | ${p.citations.toLocaleString()} | ${linksCell} |\n`;
   });
   md += `\n`;
 
@@ -1158,7 +1293,7 @@ function generateLocalPrismaReport(keyword, papers, meta) {
   md += `- 異質性 ($I^2$) やサンプルサイズによる非精密さを考慮しつつも、オープンアクセスの再現性により一定の確実性が支持されます。\n\n`;
 
   md += `## 6. 総合結論と今後の示唆 (Conclusions & Implications)\n`;
-  md += `本メタ分析の知見は、\`${keyword}\` に関する学術的エビデンスが全体として一貫した傾向を示していることを示唆しています。今後の研究では、標準化された評価プロトコルに基づく大規模追試が期待されます。\n`;
+  md += `本メタ分析の知見は、\`${keyword}\` に関する学術的エビデンスが全体として一貫した傾向を示していることを示唆しています。各論文のフルテキストへのアクセスは上記のリンク一覧をご参照ください。\n`;
 
   return md;
 }
@@ -1179,8 +1314,9 @@ function downloadCsv() {
   const included = state.papers.filter(p => p.is_included_synthesis);
   if (included.length === 0) return alert("エクスポート対象の研究がありません。");
 
-  let csvContent = "ID,Title,Authors,Year,Journal,DOI,OpenAccessURL,PDF_URL,Citations,EffectType,EffectSize,CI_Lower,CI_Upper,SampleSize\n";
+  let csvContent = "ID,Title,Authors,Year,Journal,DOI,PaperLink,OpenAccessURL,PDF_URL,Citations,EffectType,EffectSize,CI_Lower,CI_Upper,SampleSize\n";
   included.forEach(p => {
+    const paperLink = p.doi ? `https://doi.org/${p.doi}` : (p.oa_url || p.pdf_url || '');
     const row = [
       `"${p.id}"`,
       `"${(p.title || '').replace(/"/g, '""')}"`,
@@ -1188,6 +1324,7 @@ function downloadCsv() {
       p.year || '',
       `"${(p.journal || '').replace(/"/g, '""')}"`,
       `"${p.doi || ''}"`,
+      `"${paperLink}"`,
       `"${p.oa_url || ''}"`,
       `"${p.pdf_url || ''}"`,
       p.citations,

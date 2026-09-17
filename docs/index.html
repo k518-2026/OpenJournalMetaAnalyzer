@@ -30,7 +30,7 @@
             <h1 class="text-xl font-bold text-slate-900 tracking-tight">OpenJournalMetaAnalyzer</h1>
             <span class="bg-blue-100 text-blue-800 text-xs px-2 py-0.5 rounded-full font-semibold">PRISMA 2020</span>
           </div>
-          <p class="text-xs text-slate-500">海外オープンジャーナル論文検索 & メタ分析・レポート自動生成プラットフォーム</p>
+          <p class="text-xs text-slate-500">海外オープンジャーナル論文検索 & メタ分析・論文リンク付きレポート自動生成プラットフォーム</p>
         </div>
       </div>
 
@@ -90,7 +90,7 @@
             <span>海外オープンジャーナル論文の検索・メタ分析</span>
           </h2>
           <p class="text-sm text-slate-600 mt-2 leading-relaxed">
-            調べたいキーワードを入力してください。世界2.5億件の学術文献（OpenAlex、Europe PMC / PubMed Central等）から、<strong>完全オープンアクセス（OA）</strong>の論文のみを自動検索し、PRISMA 2020に準拠したメタ分析とレポート生成を行います。
+            調べたいキーワードを入力してください。<strong>日本語で入力された場合は、自動的に学術英語に翻訳</strong>して世界2.5億件の学術リポジトリ（OpenAlex等）から完全オープンアクセス論文を検索し、各論文への直接リンク付きでメタ分析とレポート生成を行います。
           </p>
         </div>
 
@@ -99,7 +99,7 @@
           <div class="flex flex-col lg:flex-row gap-3">
             <div class="relative flex-1">
               <i data-lucide="search" class="absolute left-4 top-3.5 w-5 h-5 text-slate-400"></i>
-              <input type="text" id="search-keyword" placeholder="キーワードを入力 (例: mRNA vaccine efficacy, CRISPR cancer therapy, Type 2 diabetes metformin)" 
+              <input type="text" id="search-keyword" placeholder="日本語または英語で入力 (例: アルツハイマー病 新薬, mRNAワクチン 有効性, CRISPR gene editing)" 
                 class="w-full pl-12 pr-4 py-3 rounded-xl border-2 border-slate-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none text-slate-900 text-base font-medium shadow-sm transition" />
             </div>
             
@@ -116,17 +116,19 @@
           </div>
 
           <!-- Helper description for buttons -->
-          <div class="flex items-center justify-between text-xs text-slate-500 px-1">
-            <span>💡 <b>「ワンクリック完全自動分析」</b>: 論文検索 $\rightarrow$ スクリーニング $\rightarrow$ メタ分析 $\rightarrow$ レポート作成まで一括で完了します！</span>
+          <div class="flex flex-wrap items-center justify-between text-xs text-slate-500 px-1 gap-1">
+            <span>🌐 <b>日本語自動翻訳対応</b>: 日本語で入力すると、英語に翻訳して海外オープンジャーナルから論文を検索します。</span>
+            <span>⚡ <b>「ワンクリック完全自動分析」</b>: 検索 $\rightarrow$ スクリーニング $\rightarrow$ メタ分析 $\rightarrow$ レポート作成を一括実行</span>
           </div>
 
           <!-- Quick Keyword Badges -->
-          <div class="flex items-center space-x-2 text-xs flex-wrap gap-y-1 pt-1">
-            <span class="text-slate-500 font-semibold">おすすめ検索例:</span>
-            <button class="quick-tag px-3 py-1.5 bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 rounded-lg transition font-medium border border-slate-200" data-kw="mRNA vaccine efficacy">mRNA vaccine efficacy</button>
-            <button class="quick-tag px-3 py-1.5 bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 rounded-lg transition font-medium border border-slate-200" data-kw="CRISPR gene editing therapy">CRISPR gene editing therapy</button>
-            <button class="quick-tag px-3 py-1.5 bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 rounded-lg transition font-medium border border-slate-200" data-kw="Metformin cognitive decline dementia">Metformin cognitive decline</button>
-            <button class="quick-tag px-3 py-1.5 bg-slate-100 hover:bg-blue-50 hover:text-blue-700 text-slate-700 rounded-lg transition font-medium border border-slate-200" data-kw="Remote work productivity mental health">Remote work productivity</button>
+          <div class="flex items-center space-x-2 text-xs flex-wrap gap-y-1.5 pt-1">
+            <span class="text-slate-500 font-semibold">おすすめ入力例:</span>
+            <button class="quick-tag px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition font-medium border border-blue-200" data-kw="アルツハイマー病 新薬">🇯🇵 アルツハイマー病 新薬</button>
+            <button class="quick-tag px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition font-medium border border-blue-200" data-kw="mRNAワクチン 有効性">🇯🇵 mRNAワクチン 有効性</button>
+            <button class="quick-tag px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition font-medium border border-blue-200" data-kw="CRISPR 遺伝子治療">🇯🇵 CRISPR 遺伝子治療</button>
+            <button class="quick-tag px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition font-medium border border-blue-200" data-kw="メトホルミン 認知機能">🇯🇵 メトホルミン 認知機能</button>
+            <button class="quick-tag px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition font-medium border border-slate-200" data-kw="Remote work productivity mental health">🇬🇧 Remote work productivity</button>
           </div>
 
           <!-- Search Options Accordion -->
@@ -167,9 +169,12 @@
       <!-- Loading State -->
       <div id="search-loading" class="hidden glass-card p-8 text-center space-y-4">
         <div class="inline-block animate-spin rounded-full h-10 w-10 border-4 border-blue-600 border-t-transparent"></div>
-        <p class="text-base font-semibold text-slate-800">海外オープンジャーナル論文を検索中...</p>
+        <p id="search-loading-text" class="text-base font-semibold text-slate-800">海外オープンジャーナル論文を検索中...</p>
         <p class="text-xs text-slate-500">OpenAlex & PMC リポジトリから完全オープンアクセス論文を取得し、統計指標を自動抽出しています</p>
       </div>
+
+      <!-- Translation Indicator Banner -->
+      <div id="search-translation-indicator" class="hidden"></div>
 
       <!-- Identification Summary Card (PRISMA Step 1) -->
       <div id="ident-summary-card" class="hidden glass-card p-5 bg-blue-50/50 border border-blue-200">
@@ -272,7 +277,7 @@
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div>
             <h3 class="text-base font-bold text-slate-900">論文スクリーニング・除外理由の設定</h3>
-            <p class="text-xs text-slate-500">メタ分析に採用する研究をトグルで選択し、除外する場合は理由を指定してください。</p>
+            <p class="text-xs text-slate-500">メタ分析に採用する研究をトグルで選択し、除外する場合は理由を指定してください（各論文タイトルをクリックすると原文へアクセスできます）。</p>
           </div>
           <div class="flex items-center space-x-2">
             <button id="btn-select-all" class="px-3 py-1 text-xs border border-slate-300 rounded hover:bg-slate-50">全て採用</button>
@@ -323,7 +328,7 @@
             <thead class="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
               <tr>
                 <th class="p-2.5 border border-slate-200">採用</th>
-                <th class="p-2.5 border border-slate-200">研究（筆頭著者・出版年）</th>
+                <th class="p-2.5 border border-slate-200">研究（筆頭著者・出版年 / 論文リンク）</th>
                 <th class="p-2.5 border border-slate-200">掲載ジャーナル</th>
                 <th class="p-2.5 border border-slate-200">効果量 (Point Estimate)</th>
                 <th class="p-2.5 border border-slate-200">95% CI 下限 (Lower)</th>
@@ -383,7 +388,6 @@
 
     <!-- TAB 4: PRISMA EVIDENCE SYNTHESIS & FULL DOWNLOAD SUITE -->
     <section id="tab-synthesis" class="tab-pane hidden space-y-6">
-      <!-- Report Generation & Download Hub Card -->
       <div class="glass-card p-6 bg-white border border-slate-200 shadow-md">
         <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-200 pb-5 mb-5">
           <div>
@@ -394,7 +398,7 @@
               <h2 class="text-xl font-bold text-slate-900">PRISMA 2020 メタ分析レポート作成＆ダウンロード</h2>
             </div>
             <p class="text-xs text-slate-500 mt-1">
-              PICO形式・研究特性表・知見統合・バイアスリスク・GRADE格付け・結論を網羅した学術レポートを出力・保存します。
+              各採用論文への直接リンク（DOI / OA全文 / PDF）付きの特性一覧表、PICO形式、合意・不一致点、バイアスリスク、GRADE格付けを網羅した学術レポートを出力・保存します。
             </p>
           </div>
           
@@ -405,7 +409,7 @@
           </button>
         </div>
 
-        <!-- Download Action Toolbar (Prominently displayed) -->
+        <!-- Download Action Toolbar -->
         <div id="report-download-actions" class="mb-5 p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-wrap items-center justify-between gap-3">
           <div class="flex items-center space-x-2 text-xs font-bold text-slate-700">
             <i data-lucide="download" class="w-4 h-4 text-blue-600"></i>
@@ -413,25 +417,21 @@
           </div>
 
           <div class="flex flex-wrap items-center gap-2">
-            <!-- Download Markdown -->
             <button id="btn-download-report-md" class="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-lg bg-white border border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-100 hover:text-blue-700 transition shadow-sm">
               <i data-lucide="file-code" class="w-4 h-4 text-blue-600"></i>
               <span>Markdown (.md) 保存</span>
             </button>
 
-            <!-- Download HTML (Word compatible) -->
             <button id="btn-download-report-html" class="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-lg bg-white border border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-100 hover:text-emerald-700 transition shadow-sm">
               <i data-lucide="file" class="w-4 h-4 text-emerald-600"></i>
               <span>Word互換HTML 保存</span>
             </button>
 
-            <!-- Print to PDF -->
             <button id="btn-print-report-pdf" class="inline-flex items-center space-x-1.5 px-3.5 py-2 rounded-lg bg-white border border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-100 hover:text-rose-700 transition shadow-sm">
               <i data-lucide="printer" class="w-4 h-4 text-rose-600"></i>
               <span>PDF印刷・保存</span>
             </button>
 
-            <!-- Copy Markdown -->
             <button id="btn-copy-synthesis" class="inline-flex items-center space-x-1.5 px-3 py-2 rounded-lg bg-white border border-slate-300 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition shadow-sm">
               <i data-lucide="copy" class="w-3.5 h-3.5 text-slate-500"></i>
               <span>Markdownコピー</span>
@@ -442,18 +442,18 @@
         <!-- Loading State -->
         <div id="synthesis-loading" class="hidden p-8 text-center space-y-3">
           <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent"></div>
-          <p class="text-sm font-semibold text-slate-700">採択研究のエビデンスを総合分析し、PRISMA 2020 構造化レポートを編成中...</p>
+          <p class="text-sm font-semibold text-slate-700">各論文へのリンク付きエビデンスを総合分析し、PRISMA 2020 構造化レポートを編成中...</p>
         </div>
 
         <!-- Rendered Report Content -->
         <div id="synthesis-report-container" class="prose max-w-none text-slate-800 p-6 bg-slate-50/70 rounded-xl border border-slate-200 min-h-[300px]">
           <div class="text-center py-12 text-slate-400 space-y-2">
             <i data-lucide="file-text" class="w-10 h-10 mx-auto text-slate-300"></i>
-            <p class="text-sm font-medium">上の「PRISMAレポートを作成」ボタンをクリックすると、海外オープンジャーナル論文群のメタ分析レポートが表示されます。</p>
+            <p class="text-sm font-medium">上の「PRISMAレポートを作成」ボタンをクリックすると、海外オープンジャーナル論文群のリンク付きメタ分析レポートが表示されます。</p>
           </div>
         </div>
 
-        <!-- Associated Data Downloads Card (Quick download of all related artifacts) -->
+        <!-- Associated Data Downloads Card -->
         <div class="mt-6 pt-5 border-t border-slate-200">
           <div class="text-xs font-bold text-slate-700 mb-3 flex items-center space-x-1.5">
             <i data-lucide="layers" class="w-4 h-4 text-slate-500"></i>
@@ -476,7 +476,7 @@
               </div>
               <div class="overflow-hidden">
                 <div class="text-xs font-bold text-slate-900 group-hover:text-emerald-700 truncate">メタ分析データ</div>
-                <div class="text-[10px] text-slate-500">Excel CSV保存</div>
+                <div class="text-[10px] text-slate-500">Excel CSV保存 (リンク付き)</div>
               </div>
             </button>
 
@@ -508,14 +508,13 @@
     <!-- TAB 5: EXPORT & CITATIONS -->
     <section id="tab-export" class="tab-pane hidden space-y-6">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <!-- CSV Export -->
         <div class="glass-card p-6 bg-white border border-slate-200 space-y-3 flex flex-col justify-between">
           <div>
             <div class="w-10 h-10 rounded bg-emerald-100 text-emerald-700 flex items-center justify-center mb-3">
               <i data-lucide="file-spreadsheet" class="w-6 h-6"></i>
             </div>
             <h3 class="font-bold text-slate-900">メタ分析データ (CSV)</h3>
-            <p class="text-xs text-slate-500 mt-1">採用論文の効果量、95% CI、サンプルサイズ、DOI、OA URLをExcel互換CSVでダウンロードできます。</p>
+            <p class="text-xs text-slate-500 mt-1">採用論文の効果量、95% CI、サンプルサイズ、DOI、論文直リンクをExcel互換CSVでダウンロードできます。</p>
           </div>
           <button id="btn-export-csv" class="w-full inline-flex items-center justify-center space-x-2 px-4 py-2.5 rounded-lg bg-emerald-600 text-white font-medium text-sm hover:bg-emerald-700 transition shadow">
             <i data-lucide="download" class="w-4 h-4"></i>
@@ -523,7 +522,6 @@
           </button>
         </div>
 
-        <!-- BibTeX Export -->
         <div class="glass-card p-6 bg-white border border-slate-200 space-y-3 flex flex-col justify-between">
           <div>
             <div class="w-10 h-10 rounded bg-blue-100 text-blue-700 flex items-center justify-center mb-3">
@@ -538,7 +536,6 @@
           </button>
         </div>
 
-        <!-- PRISMA Flow Summary -->
         <div class="glass-card p-6 bg-white border border-slate-200 space-y-3 flex flex-col justify-between">
           <div>
             <div class="w-10 h-10 rounded bg-purple-100 text-purple-700 flex items-center justify-center mb-3">
@@ -570,8 +567,8 @@
         </button>
       </div>
       <p class="text-xs text-slate-600 leading-relaxed">
-        Google Gemini API キーを設定すると、採択論文の高度なPRISMA定性エビデンス統合レポート（Gemini 2.5 Flash）が生成されます。<br>
-        <span class="text-slate-500 font-medium">※未設定の場合でも、内蔵の高精度NLPエンジンにより完全オフラインで動作します。</span>
+        Google Gemini API キーを設定すると、日本語キーワードの高度な学術英語翻訳および採択論文のPRISMA定性エビデンス統合レポート（Gemini 2.5 Flash）が生成されます。<br>
+        <span class="text-slate-500 font-medium">※未設定の場合でも、無料のオープン翻訳APIおよび内蔵NLPエンジンにより完全動作します。</span>
       </p>
       <div>
         <label class="block text-xs font-semibold text-slate-700 mb-1">Gemini API Key:</label>
